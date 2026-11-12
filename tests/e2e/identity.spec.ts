@@ -106,5 +106,3 @@ test('formulário de acesso sem JavaScript não envia senha por GET', async ({ b
   await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeDisabled();
   await context.close();
 });
-
-

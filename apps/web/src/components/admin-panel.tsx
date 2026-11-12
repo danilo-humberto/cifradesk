@@ -111,4 +111,3 @@ export function AdminPanel() {
     {section === 'departments' && department && <Members key={department.id} department={departments.data?.items.find(d => d.id === department.id) ?? department} mutate={mutate} busy={busy} />}
   </div>;
 }
-
