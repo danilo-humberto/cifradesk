@@ -1,1 +1,1 @@
-{ "name": "@cifradesk/infrastructure", "version": "0.1.0", "private": true, "type": "module", "exports": "./src/index.ts", "scripts": { "typecheck": "tsc --noEmit" } }
+{"name":"@cifradesk/infrastructure","version":"0.1.0","private":true,"type":"module","exports":"./src/index.ts","scripts":{"typecheck":"tsc --noEmit"},"dependencies":{"@better-auth/prisma-adapter":"1.7.22","@cifradesk/contracts":"workspace:*","@cifradesk/core":"workspace:*","@cifradesk/database":"workspace:*","better-auth":"1.7.22","nodemailer":"10.1.4"}}

@@ -1,0 +1,13 @@
+import { z } from 'zod';
+export const emailInput = z.string().trim().toLowerCase().email().max(254);
+export const nameInput = z.string().trim().min(1).max(120);
+export const passwordInput = z.string().min(8).max(128);
+export const inviteInput = z.object({ email: emailInput, name: nameInput }).strict();
+export const acceptInput = z.object({ token: z.string().min(32).max(256), password: passwordInput }).strict();
+export const updateUserInput = z.object({ name: nameInput.optional(), status: z.enum(['ACTIVE', 'DISABLED']).optional(), isAdmin: z.boolean().optional() }).strict();
+export const departmentInput = z.object({ name: nameInput, active: z.boolean().optional() }).strict();
+export const membershipInput = z.object({ userId: z.string().min(1).max(128) }).strict();
+export const preferencesInput = z.object({ theme: z.enum(['system', 'light', 'dark']) }).strict();
+export const pageInput = z.coerce.number().int().min(1).max(100000).default(1);
+export type PublicUser = { id: string; name: string; email: string; emailVerified: boolean; status: 'INVITED' | 'ACTIVE' | 'DISABLED'; isAdmin: boolean; theme: 'system' | 'light' | 'dark' };
+export type PublicDepartment = { id: string; name: string; active: boolean };
