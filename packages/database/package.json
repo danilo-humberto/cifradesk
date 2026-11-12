@@ -1,0 +1,8 @@
+{
+  "name": "@cifradesk/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "generate": "prisma validate && prisma generate", "typecheck": "tsc --noEmit" },
+  "devDependencies": { "prisma": "7.10.1" }
+}

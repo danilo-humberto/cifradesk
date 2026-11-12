@@ -1,0 +1,146 @@
+# Ambiente LOCAL. Não publicar este arquivo como configuração de produção.
+name: cifradesk-local
+
+x-health: &health
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 30s
+
+services:
+  proxy:
+    image: caddy:2.11.9-alpine@sha256:0bbb055bda6793c999bde78b1b5ce3e89f829fb031af2cf50056ea1246559fee
+    restart: unless-stopped
+    volumes:
+      - ./docker/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [entry]
+    depends_on:
+      web: { condition: service_healthy }
+    healthcheck:
+      <<: *health
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/api/health]
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile, target: runtime }
+    restart: unless-stopped
+    init: true
+    networks: [entry, internal]
+    healthcheck:
+      <<: *health
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    stop_grace_period: 20s
+
+  worker:
+    image: cifradesk-worker:local
+    build: { context: ., dockerfile: apps/worker/Dockerfile }
+    environment: { PROCESS_ROLE: worker }
+    restart: unless-stopped
+    init: true
+    networks: [internal]
+    stop_grace_period: 20s
+    healthcheck:
+      <<: *health
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+
+  dispatcher:
+    image: cifradesk-worker:local
+    build: { context: ., dockerfile: apps/worker/Dockerfile }
+    environment: { PROCESS_ROLE: dispatcher }
+    restart: unless-stopped
+    init: true
+    networks: [internal]
+    stop_grace_period: 20s
+    depends_on:
+      worker: { condition: service_healthy }
+    healthcheck:
+      <<: *health
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+
+  postgres:
+    image: postgres:17.11-bookworm@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994
+    environment:
+      POSTGRES_USER: cifradesk
+      POSTGRES_DB: cifradesk
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute scripts/setup-local.mjs}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      <<: *health
+      test: [CMD-SHELL, 'pg_isready -U cifradesk -d cifradesk']
+
+  redis-cache:
+    image: redis:7.2.17-alpine3.22@sha256:2f66de68111e64c3927859f158f8e666066dae2b97d9f82770a6f37a5aa1c335
+    environment:
+      REDIS_PASSWORD: ${REDIS_CACHE_PASSWORD:?Execute scripts/setup-local.mjs}
+      REDISCLI_AUTH: ${REDIS_CACHE_PASSWORD:?Execute scripts/setup-local.mjs}
+    command: [sh, -c, 'exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 128mb --maxmemory-policy allkeys-lru --save "" --appendonly no']
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      <<: *health
+      test: [CMD-SHELL, 'test "$$(redis-cli ping)" = PONG']
+
+  redis-queue:
+    image: redis:7.2.17-alpine3.22@sha256:2f66de68111e64c3927859f158f8e666066dae2b97d9f82770a6f37a5aa1c335
+    environment:
+      REDIS_PASSWORD: ${REDIS_QUEUE_PASSWORD:?Execute scripts/setup-local.mjs}
+      REDISCLI_AUTH: ${REDIS_QUEUE_PASSWORD:?Execute scripts/setup-local.mjs}
+    command: [sh, -c, 'exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy noeviction --appendonly yes --appendfsync everysec']
+    volumes: [redis-queue-data:/data]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      <<: *health
+      test: [CMD-SHELL, 'test "$$(redis-cli ping)" = PONG']
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.53@sha256:ccad23e18639c8b98cee17e7100b95830a06077b56d8e5b006d6dcf8ec5e94a0
+    command: [server, -s3, -dir=/data, -ip=seaweedfs, -ip.bind=0.0.0.0, -master.volumeSizeLimitMB=1024, -s3.config=/etc/seaweedfs/s3.json]
+    volumes:
+      - seaweedfs-data:/data
+      - ./.local/s3.json:/etc/seaweedfs/s3.json:ro
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      <<: *health
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:9333/cluster/status && wget -q -O /dev/null http://127.0.0.1:8888/']
+
+  mailpit:
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      <<: *health
+      test: [CMD, /mailpit, readyz]
+
+  tools:
+    profiles: [tools]
+    build: { context: ., dockerfile: docker/toolchain.Dockerfile }
+    image: cifradesk-toolchain:local
+    init: true
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - tools-node-modules:/workspace/node_modules
+      - tools-web-modules:/workspace/apps/web/node_modules
+      - tools-worker-modules:/workspace/apps/worker/node_modules
+      - tools-database-modules:/workspace/packages/database/node_modules
+      - tools-pnpm-store:/pnpm/store
+    networks: [entry, internal]
+    command: [sleep, infinity]
+    environment:
+      E2E_BASE_URL: http://proxy
+
+networks:
+  entry:
+  internal: { internal: true }
+volumes:
+  postgres-data:
+  redis-queue-data:
+  seaweedfs-data:
+  tools-node-modules:
+  tools-web-modules:
+  tools-worker-modules:
+  tools-database-modules:
+  tools-pnpm-store:
