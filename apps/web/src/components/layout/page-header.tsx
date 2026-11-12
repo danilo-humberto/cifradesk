@@ -6,7 +6,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
-const titles: Record<string, string> = { '/': 'Meu trabalho', '/requests': 'Minhas solicitações', '/departments': 'Setores', '/notifications': 'Notificações', '/settings': 'Preferências' };
+const titles: Record<string, string> = { '/': 'Meu trabalho', '/requests': 'Minhas solicitações', '/departments': 'Setores', '/notifications': 'Notificações', '/settings': 'Preferências', '/admin': 'Administração' };
 
 export function PageHeader() {
   const pathname = usePathname();

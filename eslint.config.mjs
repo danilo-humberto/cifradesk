@@ -8,6 +8,7 @@ export default defineConfig([
   { settings: { next: { rootDir: 'apps/web/' } } },
   {
     files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: ['apps/web/src/lib/server/**'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [{
         group: ['@cifradesk/database', '@cifradesk/infrastructure'],
