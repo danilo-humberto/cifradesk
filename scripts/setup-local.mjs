@@ -22,6 +22,7 @@ try {
   await writeFile('.env', [
     'COMPOSE_PROJECT_NAME=cifradesk-local',
     'WEB_PORT=3200', 'MAILPIT_PORT=58025',
+    'BETTER_AUTH_URL=http://localhost:3200', `BETTER_AUTH_SECRET=${secret()}`,
     `POSTGRES_PASSWORD=${secret()}`, `REDIS_CACHE_PASSWORD=${secret()}`, `REDIS_QUEUE_PASSWORD=${secret()}`,
     `S3_ACCESS_KEY_ID=${s3Key}`, `S3_SECRET_ACCESS_KEY=${s3Secret}`,
     ''

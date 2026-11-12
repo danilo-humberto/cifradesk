@@ -24,6 +24,13 @@ services:
     build: { context: ., dockerfile: apps/web/Dockerfile, target: runtime }
     restart: unless-stopped
     init: true
+    environment:
+      DATABASE_URL: postgresql://cifradesk:${POSTGRES_PASSWORD:?Execute scripts/setup-local.mjs}@postgres:5432/cifradesk
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Configure a chave local de autenticação}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3200}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_FROM: CifraDesk <noreply@cifradesk.local>
     networks: [entry, internal]
     healthcheck:
       <<: *health
@@ -126,11 +133,20 @@ services:
       - tools-web-modules:/workspace/apps/web/node_modules
       - tools-worker-modules:/workspace/apps/worker/node_modules
       - tools-database-modules:/workspace/packages/database/node_modules
+      - tools-infrastructure-modules:/workspace/packages/infrastructure/node_modules
+      - tools-core-modules:/workspace/packages/core/node_modules
+      - tools-contracts-modules:/workspace/packages/contracts/node_modules
       - tools-pnpm-store:/pnpm/store
     networks: [entry, internal]
     command: [sleep, infinity]
     environment:
       E2E_BASE_URL: http://proxy
+      DATABASE_URL: postgresql://cifradesk:${POSTGRES_PASSWORD:?Execute scripts/setup-local.mjs}@postgres:5432/cifradesk
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Configure a chave local de autenticação}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3200}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_FROM: CifraDesk <noreply@cifradesk.local>
 
 networks:
   entry:
@@ -143,4 +159,7 @@ volumes:
   tools-web-modules:
   tools-worker-modules:
   tools-database-modules:
+  tools-infrastructure-modules:
+  tools-core-modules:
+  tools-contracts-modules:
   tools-pnpm-store:

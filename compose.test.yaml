@@ -1,0 +1,56 @@
+# Exclusively synthetic data. Separate containers, network and volumes.
+name: cifradesk-identity-tests
+services:
+  identity-postgres:
+    image: postgres:17.11-bookworm@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994
+    env_file: .local/identity-test.env
+    volumes: [test-postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD, pg_isready, -U, identity_test, -d, identity_test]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  identity-mailpit:
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+  identity-web:
+    build: { context: ., dockerfile: apps/web/Dockerfile, target: runtime }
+    env_file: .local/identity-test.env
+    environment:
+      BETTER_AUTH_URL: http://identity-web:3000
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  tests:
+    image: cifradesk-toolchain:local
+    build: { context: ., dockerfile: docker/toolchain.Dockerfile }
+    init: true
+    working_dir: /workspace
+    env_file: .local/identity-test.env
+    environment:
+      E2E_BASE_URL: http://identity-web:3000
+      BETTER_AUTH_URL: http://identity-web:3000
+    volumes:
+      - .:/workspace
+      - test-root-modules:/workspace/node_modules
+      - test-web-modules:/workspace/apps/web/node_modules
+      - test-worker-modules:/workspace/apps/worker/node_modules
+      - test-db-modules:/workspace/packages/database/node_modules
+      - test-infra-modules:/workspace/packages/infrastructure/node_modules
+      - test-core-modules:/workspace/packages/core/node_modules
+      - test-contracts-modules:/workspace/packages/contracts/node_modules
+    depends_on:
+      identity-postgres: { condition: service_healthy }
+      identity-mailpit: { condition: service_started }
+      identity-web: { condition: service_healthy }
+    command: [sleep, infinity]
+volumes:
+  test-postgres:
+  test-root-modules:
+  test-web-modules:
+  test-worker-modules:
+  test-db-modules:
+  test-infra-modules:
+  test-core-modules:
+  test-contracts-modules:

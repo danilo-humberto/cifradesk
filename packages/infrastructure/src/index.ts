@@ -1,2 +1,2 @@
-// Adaptadores de servidor serão adicionados somente quando usados.
-export {};
+export * from './auth';
+export * from './identity';
