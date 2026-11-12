@@ -1,4 +1,4 @@
 import { defineConfig } from 'prisma/config';
 
-// Validação/geração não abre conexão. Não definir credenciais fictícias de produção.
-export default defineConfig({ schema: 'prisma/schema.prisma' });
+// validate/generate do not connect; deployment explicitly supplies its local URL.
+export default defineConfig({ schema: 'prisma/schema.prisma', datasource: { url: process.env.DATABASE_URL } });

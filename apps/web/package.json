@@ -3,9 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "next dev --hostname 0.0.0.0", "build": "next build", "start": "next start --hostname 0.0.0.0", "typecheck": "next typegen && tsc --noEmit" },
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
   "dependencies": {
     "@cifradesk/contracts": "workspace:*",
+    "@cifradesk/core": "workspace:*",
+    "@cifradesk/infrastructure": "workspace:*",
     "@tanstack/react-query": "5.107.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -15,7 +22,9 @@
     "radix-ui": "1.8.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "tailwind-merge": "3.7.0"
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.5",

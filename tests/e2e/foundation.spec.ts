@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 async function navigate(page: Page, name: string) {
   if ((page.viewportSize()?.width ?? 1280) < 768) {
@@ -95,8 +96,8 @@ test('atalho de teclado leva ao conteúdo', async ({ page }) => {
   await expect(page.locator('#main-content')).toBeFocused();
 });
 
-test('sem JavaScript respeita o tema do sistema e mantém a navegação', async ({ browser, baseURL }, testInfo) => {
-  const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'dark', viewport: testInfo.project.use.viewport });
+test('sem JavaScript respeita o tema do sistema e mantém a navegação', async ({ browser, baseURL, page: authenticatedPage }, testInfo) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'dark', viewport: testInfo.project.use.viewport, storageState: await authenticatedPage.context().storageState() });
   const page = await context.newPage();
   await page.goto(baseURL!);
   await expect(page.getByRole('heading', { name: 'Seu trabalho, em um só lugar.' })).toBeVisible();

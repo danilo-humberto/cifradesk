@@ -19,7 +19,7 @@ const links = [
   { href: '/settings', label: 'Preferências', icon: Settings2 }
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const closeMobile = () => { if (isMobile) setOpenMobile(false); };
@@ -41,7 +41,7 @@ export function AppSidebar() {
           <span className={`${brandFont.className} min-w-0 break-words text-[1.75rem] leading-tight font-semibold tracking-[0.06em] group-data-[collapsible=icon]:hidden`}>CifraDesk</span>
         </Link>
       </SidebarHeader>
-      <SidebarContent><SidebarGroup className="px-3">{menu(links.slice(0, 3))}</SidebarGroup></SidebarContent>
+      <SidebarContent><SidebarGroup className="px-3">{menu(links.slice(0, 3))}{isAdmin && menu([{ href: '/admin', label: 'Administração', icon: Settings2 }])}</SidebarGroup></SidebarContent>
       <SidebarFooter className="gap-3 p-3"><Separator />{menu(links.slice(3))}</SidebarFooter>
     </nav>
   </Sidebar>;

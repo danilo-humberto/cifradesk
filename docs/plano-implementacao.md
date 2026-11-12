@@ -2,7 +2,7 @@
 
 Data: 12/11/2026.
 
-Status: etapas 0 (planejamento) e 1 (fundação local) concluídas em 12/11/2026. Validações locais executadas, sem commit ou publicação. Ressalva de auditoria de tooling e evidências no [registro de execução](etapa-1-execucao.md). Etapa 2 não iniciada.
+Status: etapas 0 e 1 concluídas. A fundação está registrada no commit a27668e; o relatório da etapa 1 preserva seu estado histórico anterior ao commit. Etapa 2 implementada e validada localmente em branch dedicada, com revisão independente e auditoria do histórico; commits, push e um único PR para main autorizados. A entrega segue para revisão humana do PR. Merge e produção permanecem pendentes de autorização própria. Ver [identidade](identity.md) e [evidências da etapa 2](etapa-2-execucao.md).
 
 Este documento é a referência de escopo, arquitetura, etapas e critérios de aceite. Marcar itens somente após conclusão verificável. A aprovação do plano não substitui as autorizações específicas previstas nas instruções do projeto.
 
@@ -168,7 +168,7 @@ cifradesk/
 └── package.json
 ```
 
-A estrutura acima é o destino proposto. A fundação já implementa workspace, interface-base, processos-base, Docker e documentação; arquivos de autenticação, domínio, migrations e integrações permanecem nas etapas futuras. Consulte [arquitetura atual](architecture.md).
+A estrutura acima é o destino proposto. A fundação implementa workspace, interface-base, processos-base e Docker. A etapa 2 acrescenta autenticação, setores e migrations; chamados e demais integrações permanecem nas etapas futuras. Consulte [arquitetura atual](architecture.md).
 
 - `core`: casos de uso, autorização e regras de negócio compartilhadas.
 - `contracts`: validação de entradas, DTOs e contratos versionados de eventos.
@@ -360,12 +360,14 @@ React Query consulta dados após o sinal. Reconexão e retorno à aba provocam n
 
 ### Etapa 2 — Identidade e setores
 
-- [ ] Implementar migrations e autenticação própria autorizadas.
-- [ ] Implementar cadastro pelo admin, convite, senha inicial, reenvio e recuperação de acesso.
-- [ ] Preparar Mailpit em Docker para captura local de e-mails sem envio real.
-- [ ] Implementar usuários, vínculos com setores e sessões.
-- [ ] Centralizar autorização e elegibilidade de responsáveis.
-- [ ] Implementar testes de isolamento e desativação de usuários.
+Fluxo atualizado por autorização: uma branch e um PR completo, com responsabilidades de dados, regras, interface e testes. Sem PRs ou aprovações obrigatórias por camada. Categorias ficam na etapa 3; proteger último administrador ativo.
+
+- [x] Implementar migrations e autenticação própria autorizadas.
+- [x] Implementar cadastro pelo admin, convite, senha inicial, reenvio e recuperação de acesso.
+- [x] Preparar Mailpit em Docker para captura local de e-mails sem envio real.
+- [x] Implementar usuários, vínculos com setores e sessões.
+- [x] Centralizar autorização e elegibilidade de responsáveis.
+- [x] Implementar testes de isolamento e desativação de usuários.
 
 **Aceite:** login funciona; usuário inativo e acessos não autorizados são bloqueados no servidor.
 
@@ -499,7 +501,7 @@ Usar versões exatas nos manifests, sem `latest`, `^` ou `~`; pnpm workspace e u
 | bullmq | 6.7.5 | Backend Redis para jobs |
 | ioredis | 5.11.1 | Conexões separadas de cache e fila |
 | zod | 4.6.7 | Validação de entrada |
-| nodemailer | 8.0.11 | Transporte SMTP |
+| nodemailer | 10.1.4 | Transporte SMTP; atualização de segurança autorizada na etapa 2 |
 | @aws-sdk/client-s3 / @aws-sdk/s3-request-presigner | 3.1167.0 | S3 e URLs assinadas |
 
 ### Interface
@@ -558,8 +560,8 @@ Docker Engine e Compose são pré-requisitos do host: usar Linux containers e Co
 - React Query, Radix, ícones e tema declaram suporte a React 19 nos peers consultados.
 - BullMQ 6.7.5 declara ioredis >=5; ioredis 5.11.1 atende. Implementar conforme API v6, sem copiar exemplos antigos indiscriminadamente. Usar backend Redis, não a alternativa PostgreSQL do BullMQ.
 - Vitest 5.1.0 aceita Node 24 e Vite 8; Vite 8.3.8 aceita Node >=22.12. ESLint 9 satisfaz o requisito de eslint-config-next >=9.
-- Nodemailer 8 foi alinhado aos tipos disponíveis da série 8. Demais pacotes auxiliares satisfazem engines consultados; validação de tipagem efetiva ocorrerá após instalação.
-- A compatibilidade de dependências diretas não prova resolução transitiva, segurança ou execução integrada. Não houve auditoria de vulnerabilidades nesta etapa.
+- Baseline inicial usava Nodemailer 8.0.11. Na etapa 2, auditoria identificou 15 advisories nesse pacote (3 altos e 12 moderados). Atualização para 10.1.4 autorizada explicitamente; esta versão inclui tipos próprios. Demais versões diretas foram preservadas.
+- A compatibilidade de dependências diretas não prova resolução transitiva, segurança ou execução integrada. A consulta de baseline da etapa 0 não incluía auditoria; as auditorias executadas posteriormente constam nos relatórios das etapas 1 e 2.
 - Node local observado: 24.22.0; npm.cmd não estava no PATH consultado. A baseline em Docker evita depender de instalação adicional no host por padrão.
 
 ### Verificações transferidas para a implementação
@@ -568,10 +570,10 @@ Docker Engine e Compose são pré-requisitos do host: usar Linux containers e Co
 - [x] Resolver lockfile, inspecionar peers/engines e avisos de segurança reais; não ignorar conflitos para prosseguir. Ressalva de tooling documentada no relatório.
 - [x] Conferir Docker/Compose, arquitetura e digests antes de baixar/executar imagens.
 - [x] Executar typecheck, lint, build e geração Prisma na fundação.
-- [ ] Validar Better Auth/PostgreSQL: convite, reset, expiração absoluta e revogação na etapa 2.
+- [x] Validar Better Auth/PostgreSQL: convite, reset, expiração absoluta e revogação na etapa 2. Evidências no relatório; SMTP Mailpit também validado.
 - [ ] Validar BullMQ/Redis: job, retry, reinício e idempotência nas etapas de processamento.
-- [ ] Validar S3 privado, assinatura e restauração com SeaweedFS; SMTP com Mailpit nas etapas pertinentes.
+- [ ] Validar S3 privado, assinatura e restauração com SeaweedFS nas etapas pertinentes.
 
-Essas verificações não são decisões pendentes da etapa 0. São evidências de execução ainda não produzidas.
+Os itens ainda desmarcados são verificações de execução futura, não decisões pendentes da etapa 0.
 
 Fontes: [registro npm](https://registry.npmjs.org/), [adapter Better Auth](https://better-auth.com/docs/adapters/prisma), [Prisma requisitos](https://docs.prisma.io/docs/orm/reference/system-requirements), [BullMQ conexões](https://docs.bullmq.io/guide/connections), [Docker Hub](https://hub.docker.com/). Consulta npm por pacote/versão e Docker Hub por `/v2/repositories/{repo}/tags/{tag}`. Não houve download de imagens nem instalação de pacotes.

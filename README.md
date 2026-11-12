@@ -1,9 +1,10 @@
 # CifraDesk
 
-Sistema interno de chamados e tarefas. Fundação local em desenvolvimento.
+Sistema interno de chamados e tarefas. Fundação e identidade locais: acesso por convite e administração de usuários e setores.
 
 - [Plano e critérios de aceite](docs/plano-implementacao.md)
 - [Arquitetura](docs/architecture.md)
+- [Identidade, APIs e permissões](docs/identity.md)
 - [Operação e validação local](docs/operations.md)
 - [Evidências da etapa 1](docs/etapa-1-execucao.md)
 

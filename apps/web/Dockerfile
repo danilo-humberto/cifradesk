@@ -17,6 +17,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM dependencies AS development
 COPY . .
+RUN pnpm db:generate
 CMD ["pnpm", "--filter", "@cifradesk/web", "dev"]
 
 FROM development AS build

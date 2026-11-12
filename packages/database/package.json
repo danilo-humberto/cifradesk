@@ -3,6 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "generate": "prisma validate && prisma generate", "typecheck": "tsc --noEmit" },
-  "devDependencies": { "prisma": "7.10.1" }
+  "scripts": {
+    "generate": "prisma validate && prisma generate",
+    "typecheck": "tsc --noEmit",
+    "migrate": "prisma migrate deploy"
+  },
+  "devDependencies": {
+    "prisma": "7.10.1"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "pg": "8.23.1"
+  },
+  "exports": "./src/index.ts"
 }

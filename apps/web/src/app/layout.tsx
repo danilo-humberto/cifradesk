@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { AppSidebar } from '@/components/layout/sidebar';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { PageHeader } from '@/components/layout/page-header';
 import { ThemeProvider } from '@/components/theme-provider';
-import { QueryProvider } from '@/lib/query/provider';
 import './globals.css';
 
 export const metadata: Metadata = { title: { default: 'CifraDesk', template: '%s | CifraDesk' }, description: 'Chamados e tarefas da equipe em um só lugar.', robots: { index: false, follow: false } };
@@ -20,12 +16,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         [data-slot="sidebar-container"] { display: flex; position: static; width: 100%; height: auto; }
       }
     `}</style></noscript>
-    <ThemeProvider><QueryProvider>
-      <a className="skip-link" href="#main-content">Pular para o conteúdo</a>
-      <SidebarProvider style={{ '--sidebar-width': '320px', '--sidebar-width-icon': '56px' } as React.CSSProperties}><AppSidebar /><div className="main-shell">
-        <PageHeader />
-        <main id="main-content" tabIndex={-1}>{children}</main>
-      </div></SidebarProvider>
-    </QueryProvider></ThemeProvider>
+    <ThemeProvider>{children}</ThemeProvider>
   </body></html>;
 }

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const config: NextConfig = {
   output: 'standalone',
-  allowedDevOrigins: ['proxy'],
+  allowedDevOrigins: ['proxy', 'identity-web-dev'],
   outputFileTracingRoot: path.resolve(import.meta.dirname, '../..'),
   transpilePackages: ['@cifradesk/contracts'],
   poweredByHeader: false

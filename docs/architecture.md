@@ -1,17 +1,17 @@
-# Arquitetura — fundação local
+# Arquitetura — ambiente local
 
-O [plano](plano-implementacao.md) é a referência dos requisitos. Esta etapa prepara a estrutura, sem implementar identidade ou regras de negócio.
+O [plano](plano-implementacao.md) é a referência dos requisitos. A fundação e a identidade estão implementadas; veja [identidade e permissões](identity.md) e as evidências de validação da etapa 2.
 
 ## Limites dos módulos
 
 - `apps/web`: Next.js App Router, interface e API. Páginas são componentes de servidor; navegação ativa, tema e providers são componentes de cliente.
 - `apps/worker`: processos `worker` e `dispatcher`, com a mesma imagem. Nesta etapa só expõem liveness; ainda não consomem jobs nem acessam banco.
 - `packages/contracts`: contratos que podem ser importados pelo navegador, sem segredos ou dependência de infraestrutura.
-- `packages/core`: reservado para casos de uso e regras, ainda sem implementação.
-- `packages/database`: validação e geração Prisma; `FoundationProbe` é ignorado pelo client e não tem migration/tabela. Modelo definitivo pertence à etapa 2.
-- `packages/infrastructure`: reservado para adaptadores de servidor. Nenhum driver adicionado antecipadamente.
+- `packages/core`: políticas de usuário ativo, administração, convites e elegibilidade por setor, sem dependência de infraestrutura.
+- `packages/database`: schema, migration inicial e client Prisma/PostgreSQL para usuários, contas, sessões, verificações, convites, setores, vínculos e limites de tentativas.
+- `packages/infrastructure`: integração Better Auth/SMTP e operações transacionais de identidade, com autorização e proteção concorrente no PostgreSQL.
 
-O lint impede importação direta de database/infrastructure na interface. Quando houver acesso a dados, os módulos de servidor deverão usar a barreira `server-only` e testes de fronteira; a regra de lint não substitui essa barreira.
+O lint impede importação direta de database/infrastructure na interface. Entradas Next.js de servidor usam a barreira `server-only`; a exceção do lint é restrita a lib/server.
 
 ## Interface
 
@@ -19,7 +19,7 @@ Paleta: azul `#315dc7`, texto `#24334a`, fundo `#f5f7fb`, superfície branca, bo
 
 A composição prioriza a área de trabalho e estados explicitamente indisponíveis. Não há métricas, usuários ou chamados fictícios apresentados como reais.
 
-Tema usa next-themes com padrão do sistema e escolha em Preferências. O CSS também acompanha o sistema sem JavaScript. A escolha é local ao navegador; persistência por conta pertence à implementação de identidade. React Query tem instância por árvore, sem cache global compartilhado entre requisições. Hidratação de consultas e invalidação por identidade serão implementadas quando houver dados autenticados.
+Tema usa next-themes com padrão do sistema e escolha em Preferências. O CSS também acompanha o sistema sem JavaScript. A escolha é persistida também por conta, com feedback se a gravação falhar. React Query tem instância por árvore, sem cache global compartilhado entre requisições. A área protegida cria seu provider por identidade; logout limpa consultas e renova a navegação.
 
 shadcn/ui foi configurado manualmente (`components.json`). Button, Sidebar, Select, Sheet, Tooltip, Separator, Input, Skeleton, Label, Badge, Card, Avatar e Breadcrumb foram incorporados do [registro oficial new-york-v4](https://ui.shadcn.com/r/styles/new-york-v4/sidebar.json), variante Radix, em 12/11/2026. Código está em `apps/web/src/components/ui`, sem CLI ou download remoto em execução e sem novas dependências nesta adaptação. A composição usa Sidebar/Menu, Select/Label, Card, Badge e Avatar; os demais componentes são dependências do Sidebar. Licença MIT: [shadcn/ui](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
 
@@ -31,7 +31,7 @@ Compose é exclusivamente local. Rede `entry` conecta proxy/web e a interface lo
 
 Cache e filas usam Redis separados: cache descartável com `allkeys-lru`; filas com `noeviction`, AOF e volume. SeaweedFS reúne master/volume/filer/S3 no ambiente local, com volume próprio e configuração S3 autenticada. A criação do bucket e validação funcional de anexos pertencem à etapa 4.
 
-Não há migrations automáticas, acesso a produção ou envio SMTP externo. O healthcheck web/worker é liveness, não teste de prontidão de fluxos de negócio.
+Migrations são explícitas e locais; não há acesso a produção ou envio SMTP externo. O healthcheck web/worker é liveness, não teste de prontidão de fluxos de negócio.
 
 Referências: [Next.js](https://nextjs.org/docs/app/getting-started/installation), [shadcn/ui](https://ui.shadcn.com/docs/installation/manual), [next-themes](https://github.com/pacocoursey/next-themes), [SeaweedFS S3](https://github.com/seaweedfs/seaweedfs/wiki/Amazon-S3-API).
 

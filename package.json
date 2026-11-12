@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.34.9",
-  "engines": { "node": ">=24.22.3 <25" },
+  "engines": {
+    "node": ">=24.22.3 <25"
+  },
   "scripts": {
     "dev": "pnpm --filter @cifradesk/web dev",
     "build": "pnpm --filter @cifradesk/web build && pnpm --filter @cifradesk/worker build",
@@ -13,7 +15,10 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "pnpm --filter @cifradesk/database generate",
-    "check": "pnpm lint && pnpm typecheck && pnpm test"
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "db:migrate": "pnpm --filter @cifradesk/database migrate",
+    "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
+    "test:integration": "node --env-file=.local/identity-test.env scripts/run-local.mjs pnpm exec vitest run packages/infrastructure/src/identity.integration.test.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0",

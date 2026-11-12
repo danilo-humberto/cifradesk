@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { useRef, useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -14,9 +14,18 @@ export function ThemeSettings() {
   const pendingTheme = useRef<string | null>(null);
   const transitioning = useRef(false);
   const queuedTheme = useRef<string | null>(null);
+  const saves = useRef(Promise.resolve());
+  const [saveError, setSaveError] = useState('');
 
   async function changeTheme(value: string) {
     if (transitioning.current) { queuedTheme.current = value; return; }
+    saves.current = saves.current.then(async () => {
+      try {
+        const response = await fetch('/api/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: value }) });
+        if (!response.ok) throw new Error();
+        setSaveError('');
+      } catch { setSaveError('Tema alterado neste navegador, mas não foi salvo na conta. Tente novamente.'); }
+    });
     const target = value === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : value;
     const current = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches || target === current) {
@@ -52,7 +61,7 @@ export function ThemeSettings() {
   }
   return (
     <div className="settings-row">
-      <div><Label htmlFor="theme">Tema da interface</Label><p id="theme-description">Escolha a aparência neste navegador.</p></div>
+      <div><Label htmlFor="theme">Tema da interface</Label><p id="theme-description">Escolha a aparência da sua conta.</p><p role="alert">{saveError}</p></div>
       <Select disabled={!mounted} value={mounted ? theme : 'system'} onValueChange={value => { pendingTheme.current = value; }}>
         <SelectTrigger ref={trigger} id="theme" aria-describedby="theme-description" className="w-full sm:w-[210px]"><SelectValue /></SelectTrigger>
         <SelectContent position="popper" className="data-[state=closed]:animate-none" onCloseAutoFocus={event => {
