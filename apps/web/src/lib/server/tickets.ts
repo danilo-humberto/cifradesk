@@ -2,6 +2,16 @@ import 'server-only';
 import { DomainError } from '@cifradesk/core';
 import { boundedBytes } from './http';
 export { createTicket, uploadAttachments, downloadAttachment, assertAttachmentAccess } from '@cifradesk/infrastructure';
+export { getTicket, listTickets, listTicketActivities } from '@cifradesk/infrastructure';
+
+export function ticketQuery(request: Request) {
+  const query: Record<string, string> = {};
+  for (const [key, value] of new URL(request.url).searchParams) {
+    if (Object.hasOwn(query, key)) throw new DomainError(400, 'Parâmetro repetido.');
+    Object.defineProperty(query, key, { value, enumerable: true, configurable: true });
+  }
+  return query;
+}
 
 export async function attachmentFiles(request: Request) {
   // Bound the actual body before the multipart parser buffers it, including chunked uploads.
