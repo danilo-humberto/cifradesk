@@ -1,0 +1,16 @@
+import 'server-only';
+import { DomainError } from '@cifradesk/core';
+import { boundedBytes } from './http';
+export { createTicket, uploadAttachments, downloadAttachment, assertAttachmentAccess } from '@cifradesk/infrastructure';
+
+export async function attachmentFiles(request: Request) {
+  // Bound the actual body before the multipart parser buffers it, including chunked uploads.
+  const bytes = await boundedBytes(request, 100 * 1024 * 1024 + 64 * 1024);
+  let form: FormData;
+  try { form = await new Response(new Uint8Array(bytes), { headers: { 'content-type': request.headers.get('content-type') ?? '' } }).formData(); }
+  catch { throw new DomainError(400, 'Envio de arquivos inválido.'); }
+  const files = form.getAll('files');
+  if ([...form.keys()].some(key => key !== 'files') || files.length < 1 || files.length > 5 || files.some(file => typeof file === 'string'))
+    throw new DomainError(400, 'Envie de um a cinco arquivos no campo files.');
+  return Promise.all((files as File[]).map(async file => ({ originalName: file.name, mimeType: file.type, bytes: Buffer.from(await file.arrayBuffer()) })));
+}
