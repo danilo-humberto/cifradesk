@@ -31,6 +31,11 @@ model User {
   accounts Account[]
   invitations Invitation[]
   memberships DepartmentMembership[]
+  createdTickets Ticket[]
+  ticketAssignments TicketAssignee[] @relation("Assignee")
+  assignedTickets TicketAssignee[] @relation("AssignedBy")
+  ticketActivities TicketActivity[]
+  ticketAttachments TicketAttachment[]
 }
 model Session {
   id String @id
@@ -90,6 +95,8 @@ model Department {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   memberships DepartmentMembership[]
+  originatedTickets Ticket[] @relation("OriginDepartment")
+  tickets Ticket[] @relation("HandlingDepartment")
 }
 model DepartmentMembership {
   userId String
@@ -105,4 +112,117 @@ model RateLimit {
   key String @unique
   count Int
   lastRequest BigInt
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  IN_PROGRESS
+  DONE
+  REVIEW
+  BLOCKED
+  CLOSED
+}
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+enum RequestedFor {
+  SELF
+  OTHER
+}
+enum ActivityVisibility {
+  SHARED
+  INTERNAL
+}
+enum AttachmentStatus {
+  PENDING_UPLOAD
+  AVAILABLE
+  FAILED
+  PENDING_DELETION
+}
+model Ticket {
+  id String @id @default(uuid()) @db.Uuid
+  number Int @unique @default(autoincrement())
+  title String @db.VarChar(150)
+  description String
+  createdById String
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  requestedFor RequestedFor
+  requesterName String @db.VarChar(150)
+  originDepartmentId String
+  originDepartment Department @relation("OriginDepartment", fields: [originDepartmentId], references: [id], onDelete: Restrict)
+  originDepartmentName String
+  departmentId String
+  department Department @relation("HandlingDepartment", fields: [departmentId], references: [id], onDelete: Restrict)
+  status TicketStatus @default(OPEN)
+  priority TicketPriority @default(NORMAL)
+  dueDate DateTime? @db.Date
+  version Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  assignees TicketAssignee[]
+  activities TicketActivity[]
+  attachments TicketAttachment[]
+  outboxEvents OutboxEvent[]
+  @@index([createdById, createdAt, id])
+  @@index([departmentId, status, createdAt, id])
+  @@index([departmentId, dueDate, id])
+  @@index([originDepartmentId])
+}
+model TicketAssignee {
+  ticketId String @db.Uuid
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  userId String
+  user User @relation("Assignee", fields: [userId], references: [id], onDelete: Restrict)
+  assignedById String
+  assignedBy User @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: Restrict)
+  assignedAt DateTime @default(now()) @db.Timestamptz(3)
+  @@id([ticketId, userId])
+  @@index([userId, ticketId])
+  @@index([assignedById])
+}
+model TicketActivity {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  authorId String
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  action String @db.VarChar(100)
+  ticketVersion Int
+  changes Json
+  reason String?
+  visibility ActivityVisibility
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([ticketId, createdAt, id])
+  @@index([ticketId, visibility, createdAt, id])
+  @@index([authorId])
+}
+model TicketAttachment {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  uploadedById String
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  originalName String @db.VarChar(255)
+  objectKey String @unique
+  mimeType String @db.VarChar(150)
+  size Int
+  status AttachmentStatus @default(PENDING_UPLOAD)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@index([ticketId, status, createdAt, id])
+  @@index([uploadedById])
+}
+model OutboxEvent {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  type String @db.VarChar(100)
+  contractVersion Int
+  payload Json
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([ticketId, createdAt, id])
 }
