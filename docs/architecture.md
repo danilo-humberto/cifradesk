@@ -10,6 +10,7 @@ O [plano](plano-implementacao.md) é a referência dos requisitos. A fundação 
 - `packages/core`: políticas de usuário ativo, administração, convites e elegibilidade por setor, sem dependência de infraestrutura.
 - `packages/database`: schema, migrations e client Prisma/PostgreSQL para identidade/setores e, desde a 3.2, chamados, responsáveis, atividades, metadados de anexos e outbox.
 - `packages/infrastructure`: integração Better Auth/SMTP, operações transacionais de identidade e abertura de chamados, com autorização e proteção concorrente no PostgreSQL. Anexos possuem reservas, validação de conteúdo, armazenamento privado S3 e recuperação operacional; [contratos e limites da 3.4](tarefa-3.4-abertura.md).
+- Consultas de chamados usam transações `RepeatableRead`, com usuário/versão de autenticação e vínculos consultados no mesmo snapshot das páginas e contagens. Predicados de acesso e visibilidade interna são aplicados no PostgreSQL antes da paginação; leituras não usam o lock global das escritas. Respostas HTTP usam `no-store`. [Contratos e limites da 3.5](tarefa-3.5-consultas.md).
 
 O lint impede importação direta de database/infrastructure na interface. Entradas Next.js de servidor usam a barreira `server-only`; a exceção do lint é restrita a lib/server.
 

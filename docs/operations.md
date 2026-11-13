@@ -61,7 +61,7 @@ docker compose exec tools pnpm audit --prod
 docker compose exec tools pnpm audit
 ```
 
-`pnpm check` executa lint, tipos e testes unitários; integrações de identidade são puladas sem IDENTITY_TEST_DATABASE=1 e integrações de chamados sem TICKETS_TEST_DATABASE=1. Não chamar os testes de navegador contra o banco de desenvolvimento.
+`pnpm check` executa lint, tipos e testes unitários; integrações de identidade são puladas sem IDENTITY_TEST_DATABASE=1, abertura de chamados sem TICKETS_TEST_DATABASE=1 e consultas sem TICKET_QUERIES_TEST_DATABASE=1. Use os runners sintéticos correspondentes; não habilite essas flags contra o banco de trabalho. Não chamar os testes de navegador contra o banco de desenvolvimento.
 
 ## Testes isolados de identidade
 
@@ -110,7 +110,7 @@ Parar preserva volumes. Não usar `down -v`, limpeza global ou remoção de volu
 
 ## Limites
 
-SMTP de produção, TLS publicado, backup/restauração e carga continuam pendentes. A 3.4 implementa abertura via API e anexos privados localmente; consultas, operações e interface continuam nas tarefas seguintes. Categorias foram removidas do escopo. Filas de negócio não foram antecipadas. O lock transacional serializa mutações de identidade, login e reservas/criação de chamados; medir contenção antes de ampliar a carga. A auditoria completa pode manter o advisory de tooling descrito nas evidências, sem equivaler a auditoria de runtime aprovada.
+SMTP de produção, TLS publicado, backup/restauração e carga continuam pendentes. A 3.4 implementa abertura via API e anexos privados localmente; a 3.5 acrescenta consultas autorizadas. Operações e interface continuam nas tarefas seguintes. Categorias foram removidas do escopo. Filas de negócio não foram antecipadas. O lock transacional serializa mutações de identidade, login e reservas/criação de chamados; medir contenção antes de ampliar a carga. A auditoria completa pode manter o advisory de tooling descrito nas evidências, sem equivaler a auditoria de runtime aprovada.
 
 ## Anexos privados — tarefa 3.4
 
@@ -131,3 +131,7 @@ docker compose exec tools pnpm exec tsx scripts/storage-local.ts cleanup
 Esse comando remove somente objetos de uploads incompletos/exclusões pendentes, não anexos disponíveis. Verificar ambiente e autorização antes de executar em dados de trabalho. A tarefa executou recuperação apenas em dados sintéticos.
 
 Para reproduzir a integração da 3.4, usar `node scripts/test-ticket-opening.mjs` no host com Docker e o container de ferramentas `cifradesk-etapa34-tools` iniciado a partir de `cifradesk-toolchain:local`, montando o workspace e os volumes `cifradesk-identidade-*`, conectado à rede `cifradesk-local_internal`. O runner cria banco/papel próprios e bucket sintético, aplica as migrations somente nesse banco e executa a suíte de chamados. Consome a configuração S3 local autorizada em memória, sem logs de segredos; preserva os recursos de teste para diagnóstico. `pnpm test:integration` continua selecionando somente identidade. [Evidências, contratos HTTP e limitações](tarefa-3.4-abertura.md).
+
+## Consultas de chamados — tarefa 3.5
+
+`node scripts/test-ticket-queries.mjs` usa o mesmo container de ferramentas e PostgreSQL local. Cria banco/papel exclusivos `tickets35_test_*`, aplica migrations somente nesse banco e executa oito integrações, incluindo EXPLAIN de SQL representativo. Não acessa S3 nem lê credenciais da aplicação; gera senha sintética em memória. Preserva o banco de teste para diagnóstico. [Rotas GET, paginação, acesso e validação manual](tarefa-3.5-consultas.md). Nenhum deploy é necessário para os testes; a aplicação já em execução não é atualizada por esse runner.

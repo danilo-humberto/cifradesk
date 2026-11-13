@@ -1,6 +1,6 @@
 # Etapa 3 — Chamados completos: tarefas e critérios de aceite
 
-Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5–3.8 não iniciadas.** [Evidências e limitações da 3.4](tarefa-3.4-abertura.md).
+Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6–3.8 não iniciadas.** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
 
 ## Por que esta é a próxima etapa
 
@@ -18,7 +18,7 @@ Anexos na abertura foram incluídos pelo usuário na tarefa 3.1: antecipar o upl
 
 ## Decisões consolidadas — tarefa 3.1
 
-Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. Persistência (3.2), abertura e anexos via API (3.4) estão implementados localmente; consultas, operações e interface permanecem pendentes.
+Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. Persistência (3.2), abertura e anexos via API (3.4) e consultas (3.5) estão implementados localmente; operações e interface permanecem pendentes.
 
 ### Status
 
@@ -87,7 +87,7 @@ Compartilhado: abertura, status, responsáveis, setor, prioridade, prazo e resum
 
 ## Tarefas menores
 
-Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5–3.8 não iniciadas. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
+Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5 registrada em commits locais autorizados; 3.6–3.8 não iniciadas. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
 
 ### 3.1 — Fechar regras e matriz de acesso
 
@@ -111,7 +111,7 @@ Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas local
 - [x] Chamado possui número único, solicitante, setor, múltiplos responsáveis, status, prioridade, prazo, versão e datas.
 - [x] Vínculos de responsáveis não se repetem. Referências inválidas são rejeitadas sem corromper dados existentes.
 - [x] Histórico e outbox têm identificadores e vínculos rastreáveis; eventos possuem tipo e versão. Metadados dos anexos incluídos, sem tarefas independentes.
-- [x] Índices previstos para número, solicitante, setor/status, responsável, prazo e histórico por item/data, com desempate por ID. Consultas e planos reais, incluindo a junção de responsável/status, serão validados na 3.5.
+- [x] Índices previstos para número, solicitante, setor/status, responsável, prazo e histórico por item/data, com desempate por ID. Consultas e planos reais, incluindo a junção de responsável/status, foram inspecionados na 3.5 em amostra sintética pequena; carga permanece para a 3.8.
 - [x] Migration funciona em banco sintético vazio e sobre a migration de identidade, preservando usuários e vínculos. Client gerado e tipos compilados.
 
 ### 3.3 — Retirada do escopo
@@ -137,11 +137,13 @@ Cadastro de categorias removido por decisão do usuário. Numeração preservada
 
 **Critérios de aceite:**
 
-- [ ] Minhas solicitações mostra somente chamados do criador autenticado; fila mostra somente setores autorizados; detalhe aplica a matriz da 3.1.
-- [ ] Solicitar para outro setor permite acompanhar o próprio chamado, sem abrir a fila desse setor.
-- [ ] Trocar IDs, filtros ou página não revela títulos, contagens ou histórico de itens proibidos. Administrador sem vínculo não recebe acesso global.
-- [ ] Listas e histórico têm limite de página, ordenação estável e validação dos parâmetros; autorização ocorre antes da paginação/contagem.
-- [ ] Revogação, desativação e remoção de vínculo são reavaliadas no servidor, sem depender apenas de ocultar controles na tela.
+- [x] Minhas solicitações mostra somente chamados do criador autenticado; fila mostra somente setores autorizados; detalhe aplica a matriz da 3.1.
+- [x] Solicitar para outro setor permite acompanhar o próprio chamado, sem abrir a fila desse setor.
+- [x] Trocar IDs, filtros ou página não revela títulos, contagens ou histórico de itens proibidos. Administrador sem vínculo não recebe acesso global.
+- [x] Listas e histórico têm limite de página, ordenação estável e validação dos parâmetros; autorização ocorre antes da paginação/contagem.
+- [x] Revogação, desativação e remoção de vínculo são reavaliadas no servidor, sem depender apenas de ocultar controles na tela.
+
+Políticas de acesso autorizadas explicitamente pelo usuário em 13/11/2026. [Contratos, testes e limites da leitura por snapshot](tarefa-3.5-consultas.md). Commits locais autorizados; sem push ou PR desta tarefa.
 
 ### 3.6 — Operar chamados e impedir sobrescrita concorrente
 
