@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { currentUser, limitAttempts } from '@/lib/server/identity';
-import { assertAttachmentAccess, attachmentFiles, uploadAttachments } from '@/lib/server/tickets';
+import { assertAttachmentAccess, attachmentFiles, uploadAttachments, listTicketAttachments, ticketQuery } from '@/lib/server/tickets';
 import { failure, json, sameOrigin } from '@/lib/server/http';
+
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  try { return json(await listTicketAttachments(await currentUser(request.headers), (await context.params).id, ticketQuery(request))); }
+  catch (error) { return failure(error); }
+}
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {

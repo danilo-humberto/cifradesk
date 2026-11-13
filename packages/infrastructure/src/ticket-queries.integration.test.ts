@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { database } from '@cifradesk/database';
-import { getTicket, listTickets, listTicketActivities } from './ticket-queries';
+import { getTicket, listTickets, listTicketActivities, listTicketAttachments } from './ticket-queries';
+import { listTicketOptions } from './ticket-options';
 
 const enabled = process.env.TICKET_QUERIES_TEST_DATABASE === '1';
 describe.skipIf(!enabled)('authorized ticket queries in PostgreSQL', () => {
@@ -30,6 +31,26 @@ describe.skipIf(!enabled)('authorized ticket queries in PostgreSQL', () => {
     } });
   });
   afterAll(async () => { await db.$disconnect(); });
+  it('oferece opções restritas com paginação real e sem dados de conta', async () => {
+    expect((await listTicketOptions(creator!, { scope: 'origins' })).items.map(row => row.id)).toEqual([origin]);
+    expect((await listTicketOptions(outsider!, { scope: 'origins' })).total).toBe(0);
+    await expect(listTicketOptions(admin!, { scope: 'members', departmentId: destination })).rejects.toMatchObject({ status: 404 });
+    expect((await listTicketOptions(member!, { scope: 'members', departmentId: destination })).items).toEqual([{ id: member!.id, name: member!.name }]);
+    const extra = Array.from({ length: 21 }, (_, i) => ({ id: randomUUID(), name: 'Extra ' + String(i).padStart(2, '0') }));
+    await db.department.createMany({ data: extra });
+    const first = await listTicketOptions(creator!, { scope: 'destinations' });
+    const second = await listTicketOptions(creator!, { scope: 'destinations', page: 2 });
+    expect(first.items).toHaveLength(20); expect(second.items).toHaveLength(3);
+    expect(new Set([...first.items, ...second.items].map(row => row.id)).size).toBe(23);
+  });
+  it('resolve nomes das referências autorizadas no histórico sem perder IDs', async () => {
+    const activity = await db.ticketActivity.create({ data: { ticketId: ids[1]!, authorId: member!.id, ticketVersion: 1, action: 'ticket.transferred', visibility: 'SHARED', changes: { userIds: [member!.id], previousUserIds: [], departmentId: destination, previousDepartmentId: origin } } });
+    const result = await listTicketActivities(creator!, ids[1]!, {});
+    expect(result.items.find(row => row.id === activity.id)?.changes).toMatchObject({ userIds: [member!.id], assigneeNames: [member!.name], previousAssigneeNames: [], departmentName: 'Destino', previousDepartmentName: 'Origem' });
+    await db.ticketActivity.create({ data: { ticketId: ids[1]!, authorId: member!.id, ticketVersion: 1, action: 'ticket.assignees_removed', visibility: 'INTERNAL', changes: { removedUserId: member!.id } } });
+    expect((await listTicketActivities(member!, ids[1]!, {})).items[0]?.changes).toMatchObject({ removedUserId: member!.id, removedUserName: member!.name });
+    expect((await listTicketActivities(creator!, ids[1]!, {})).items.some(row => row.changes.removedUserName)).toBe(false);
+  });
   it('separates own requests from the queue, including cross-department requests', async () => {
     expect((await listTickets(creator!, 'mine', {})).total).toBe(3);
     expect((await listTickets(creator!, 'queue', { departmentId: destination })).total).toBe(0);
@@ -37,6 +58,14 @@ describe.skipIf(!enabled)('authorized ticket queries in PostgreSQL', () => {
     expect((await listTickets(member!, 'queue', {})).total).toBe(3);
     expect((await getTicket(creator!, ids[0]!)).dueDate).toBe('2026-11-14');
     expect((await getTicket(member!, ids[0]!)).assignees.map(a => a.id)).toEqual([member!.id]);
+  });
+  it('lista anexos paginados sem chave privada e aplica o acesso do detalhe', async () => {
+    await db.ticketAttachment.create({ data: { ticketId: ids[0]!, uploadedById: creator!.id, originalName: 'teste.txt', mimeType: 'text/plain', size: 10, objectKey: 'private/teste', status: 'AVAILABLE' } });
+    const result = await listTicketAttachments(creator!, ids[0]!, { pageSize: 1 });
+    expect(result.total).toBe(1);
+    expect(result.items[0]).toMatchObject({ originalName: 'teste.txt', status: 'AVAILABLE' });
+    expect(result.items[0]).not.toHaveProperty('objectKey');
+    await expect(listTicketAttachments(outsider!, ids[0]!, {})).rejects.toMatchObject({ status: 404 });
   });
   it('denies administrator, typed beneficiary and forged filters without leaking counts', async () => {
     for (const actor of [admin!, outsider!]) {

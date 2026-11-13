@@ -58,6 +58,17 @@ export async function getTicket(actor: TicketActor, ticketId: string) {
   const id = ticketIdInput.parse(ticketId);
   return read(actor, async tx => serializeTicket(await authorizedTicket(tx, actor, id)));
 }
+export async function listTicketAttachments(actor: TicketActor, ticketId: string, input: unknown) {
+  const id = ticketIdInput.parse(ticketId);
+  const { page, pageSize } = ticketPageInput.parse(input);
+  return read(actor, async tx => {
+    const ticket = await authorizedTicket(tx, actor, id);
+    const department = await tx.department.findUniqueOrThrow({ where: { id: ticket.department.id }, select: { active: true } });
+    const where = { ticketId: id };
+    const items = await tx.ticketAttachment.findMany({ where, select: { id: true, originalName: true, mimeType: true, size: true, status: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: pageSize, skip: (page - 1) * pageSize });
+    return { items, total: await tx.ticketAttachment.count({ where }), page, pageSize, canUpload: department.active };
+  });
+}
 export async function listTicketActivities(actor: TicketActor, ticketId: string, input: unknown) {
   const id = ticketIdInput.parse(ticketId);
   const { page, pageSize } = ticketPageInput.parse(input);
@@ -72,6 +83,26 @@ export async function listTicketActivities(actor: TicketActor, ticketId: string,
       changes: true, reason: true, visibility: true, createdAt: true
     }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * pageSize, take: pageSize });
     const total = await tx.ticketActivity.count({ where });
-    return ticketActivityListResponse.parse({ items: rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString() })), total, page, pageSize });
+    // Resolve only references already present in this authorized page of history.
+    // Names reflect current records; the original IDs remain for auditability.
+    const changes = rows.map(row => row.changes as Record<string, unknown>);
+    const userIds = [...new Set(changes.flatMap(change => [change.userIds, change.previousUserIds, typeof change.removedUserId === 'string' ? [change.removedUserId] : []].flatMap(value => Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [])))];
+    const departmentIds = [...new Set(changes.flatMap(change => [change.departmentId, change.previousDepartmentId].filter((id): id is string => typeof id === 'string')))];
+    const people = new Map<string, string>();
+    for (let offset = 0; offset < userIds.length; offset += 100) {
+      for (const user of await tx.user.findMany({ where: { id: { in: userIds.slice(offset, offset + 100) } }, select: { id: true, name: true }, take: 100 })) people.set(user.id, user.name);
+    }
+    const departments = new Map<string, string>();
+    for (let offset = 0; offset < departmentIds.length; offset += 100) {
+      for (const department of await tx.department.findMany({ where: { id: { in: departmentIds.slice(offset, offset + 100) } }, select: { id: true, name: true }, take: 100 })) departments.set(department.id, department.name);
+    }
+    return ticketActivityListResponse.parse({ items: rows.map((row, index) => {
+      const change = changes[index]!;
+      const display: Record<string, unknown> = {};
+      if (typeof change.removedUserId === 'string') display.removedUserName = people.get(change.removedUserId) ?? `Pessoa indisponível (${change.removedUserId})`;
+      for (const key of ['userIds', 'previousUserIds']) if (Array.isArray(change[key])) display[key === 'userIds' ? 'assigneeNames' : 'previousAssigneeNames'] = (change[key] as string[]).map(id => people.get(id) ?? `Pessoa indisponível (${id})`);
+      for (const key of ['departmentId', 'previousDepartmentId']) if (typeof change[key] === 'string') display[key === 'departmentId' ? 'departmentName' : 'previousDepartmentName'] = departments.get(change[key]) ?? `Setor indisponível (${change[key]})`;
+      return { ...row, changes: { ...change, ...display }, createdAt: row.createdAt.toISOString() };
+    }), total, page, pageSize });
   });
 }

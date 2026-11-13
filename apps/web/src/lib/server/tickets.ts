@@ -2,7 +2,7 @@ import 'server-only';
 import { DomainError } from '@cifradesk/core';
 import { boundedBytes } from './http';
 export { createTicket, uploadAttachments, downloadAttachment, assertAttachmentAccess } from '@cifradesk/infrastructure';
-export { getTicket, listTickets, listTicketActivities } from '@cifradesk/infrastructure';
+export { getTicket, listTickets, listTicketActivities, listTicketAttachments } from '@cifradesk/infrastructure';
 export { operateTicket } from '@cifradesk/infrastructure';
 
 export function ticketQuery(request: Request) {

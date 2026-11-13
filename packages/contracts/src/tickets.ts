@@ -44,6 +44,10 @@ export const ticketPageInput = z.object({
 export const ticketListInput = ticketPageInput.extend({
   status: ticketStatus.optional(), departmentId: uuid.optional(), assigneeId: userId.optional()
 }).strict();
+export const ticketOptionsInput = z.discriminatedUnion('scope', [
+  z.object({ scope: z.enum(['origins', 'destinations', 'memberships']), page: z.coerce.number().int().min(1).max(100000).default(1) }).strict(),
+  z.object({ scope: z.literal('members'), departmentId: uuid, page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()
+]);
 
 export const ticketAttachmentInput = z.object({
   originalName: z.string().trim().min(1).max(255),
