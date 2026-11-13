@@ -16,7 +16,7 @@ export function PageHeader() {
       <Breadcrumb aria-label="Caminho da página"><BreadcrumbList>
         <BreadcrumbItem className="hidden sm:inline-flex">Espaço de trabalho</BreadcrumbItem>
         <BreadcrumbSeparator className="hidden sm:block" />
-        <BreadcrumbItem><BreadcrumbPage>{titles[pathname] ?? 'Página não encontrada'}</BreadcrumbPage></BreadcrumbItem>
+        <BreadcrumbItem><BreadcrumbPage>{titles[pathname] ?? (pathname === '/requests/new' ? 'Abrir chamado' : pathname.startsWith('/requests/') ? 'Detalhe do chamado' : 'Página não encontrada')}</BreadcrumbPage></BreadcrumbItem>
       </BreadcrumbList></Breadcrumb>
     </div>
     <Badge variant="outline" className="shrink-0 whitespace-nowrap text-muted-foreground">Prévia</Badge>

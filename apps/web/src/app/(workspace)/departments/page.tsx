@@ -1,3 +1,4 @@
-import { ComingSoon } from '@/components/coming-soon';
+import { TicketList } from '@/components/tickets/list';
+import { requireUser } from '@/lib/server/session';
 export const metadata = { title: 'Setores' };
-export default function Departments() { return <ComingSoon title="Setores" description="As demandas do seu setor, organizadas em um só lugar." />; }
+export default async function Departments() { return <TicketList userId={(await requireUser()).id} scope="queue" />; }
