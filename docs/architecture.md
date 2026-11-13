@@ -8,8 +8,8 @@ O [plano](plano-implementacao.md) é a referência dos requisitos. A fundação 
 - `apps/worker`: processos `worker` e `dispatcher`, com a mesma imagem. Nesta etapa só expõem liveness; ainda não consomem jobs nem acessam banco.
 - `packages/contracts`: contratos que podem ser importados pelo navegador, sem segredos ou dependência de infraestrutura.
 - `packages/core`: políticas de usuário ativo, administração, convites e elegibilidade por setor, sem dependência de infraestrutura.
-- `packages/database`: schema, migration inicial e client Prisma/PostgreSQL para usuários, contas, sessões, verificações, convites, setores, vínculos e limites de tentativas.
-- `packages/infrastructure`: integração Better Auth/SMTP e operações transacionais de identidade, com autorização e proteção concorrente no PostgreSQL.
+- `packages/database`: schema, migrations e client Prisma/PostgreSQL para identidade/setores e, desde a 3.2, chamados, responsáveis, atividades, metadados de anexos e outbox.
+- `packages/infrastructure`: integração Better Auth/SMTP, operações transacionais de identidade e abertura de chamados, com autorização e proteção concorrente no PostgreSQL. Anexos possuem reservas, validação de conteúdo, armazenamento privado S3 e recuperação operacional; [contratos e limites da 3.4](tarefa-3.4-abertura.md).
 
 O lint impede importação direta de database/infrastructure na interface. Entradas Next.js de servidor usam a barreira `server-only`; a exceção do lint é restrita a lib/server.
 
@@ -29,7 +29,7 @@ Adaptações locais: aliases de importação, textos acessíveis em português, 
 
 Compose é exclusivamente local. Rede `entry` conecta proxy/web e a interface local Mailpit no override de desenvolvimento; rede `internal`, com saída externa bloqueada, conecta serviços de dados. Somente proxy e interface Mailpit publicam portas, em loopback, pelo override de desenvolvimento. Os processos não recebem segredos de integrações que ainda não usam.
 
-Cache e filas usam Redis separados: cache descartável com `allkeys-lru`; filas com `noeviction`, AOF e volume. SeaweedFS reúne master/volume/filer/S3 no ambiente local, com volume próprio e configuração S3 autenticada. A criação do bucket e validação funcional de anexos pertencem à etapa 4.
+Cache e filas usam Redis separados: cache descartável com `allkeys-lru`; filas com `noeviction`, AOF e volume. SeaweedFS reúne master/volume/filer/S3 no ambiente local, com volume próprio e configuração S3 autenticada. Bucket privado e upload/download autorizados foram antecipados para a 3.4; mensagens continuam na etapa 4. Downloads passam pelo servidor sem URL pública ou presign. IO S3 ocorre fora das transações; falhas preservam chamado e reservas até limpeza confirmada após janela de graça.
 
 Migrations são explícitas e locais; não há acesso a produção ou envio SMTP externo. O healthcheck web/worker é liveness, não teste de prontidão de fluxos de negócio.
 

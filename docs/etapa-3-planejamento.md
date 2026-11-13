@@ -1,6 +1,6 @@
 # Etapa 3 — Chamados completos: tarefas e critérios de aceite
 
-Data: 13/11/2026. **Status: tarefa 3.1 concluída no planejamento; 3.2 implementada, revisada e registrada em commits locais autorizados, sem push/PR. Demais tarefas não iniciadas.**
+Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5–3.8 não iniciadas.** [Evidências e limitações da 3.4](tarefa-3.4-abertura.md).
 
 ## Por que esta é a próxima etapa
 
@@ -18,7 +18,7 @@ Anexos na abertura foram incluídos pelo usuário na tarefa 3.1: antecipar o upl
 
 ## Decisões consolidadas — tarefa 3.1
 
-Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. A persistência da 3.2 está implementada; os fluxos operacionais continuam pendentes.
+Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. Persistência (3.2), abertura e anexos via API (3.4) estão implementados localmente; consultas, operações e interface permanecem pendentes.
 
 ### Status
 
@@ -87,7 +87,7 @@ Compartilhado: abertura, status, responsáveis, setor, prioridade, prazo e resum
 
 ## Tarefas menores
 
-Tarefa 3.1 concluída no planejamento; 3.2 implementada e revisada localmente; demais tarefas não iniciadas. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
+Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5–3.8 não iniciadas. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
 
 ### 3.1 — Fechar regras e matriz de acesso
 
@@ -124,12 +124,12 @@ Cadastro de categorias removido por decisão do usuário. Numeração preservada
 
 **Critérios de aceite:**
 
-- [ ] Usuário ativo abre chamado para setor elegível; identidade do criador vem da sessão, separada do nome informado, sem permitir falsificação pelo corpo da requisição.
-- [ ] Campos e setor são validados no servidor conforme 3.1; mesma pessoa pode solicitar e atender quando elegível.
-- [ ] Anexos respeitam acesso privado, 20 MB por arquivo, cinco por envio, 200 MB acumulados e tipos permitidos do plano geral; testar autorização, falhas de upload e limpeza de objetos incompletos.
-- [ ] Número é único mesmo com criações simultâneas.
-- [ ] Chamado, atividade de criação e `ticket.created.v1` são gravados na mesma transação. Falha em qualquer gravação desfaz todas.
-- [ ] Testes demonstram criação válida, rejeições e rollback usando dados sintéticos.
+- [x] Usuário ativo abre chamado para setor elegível; identidade do criador vem da sessão, separada do nome informado, sem permitir falsificação pelo corpo da requisição.
+- [x] Campos e setor são validados no servidor conforme 3.1; mesma pessoa pode abrir para o próprio setor. Operações de atendimento continuam na 3.6.
+- [x] Anexos respeitam acesso privado, 20 MB por arquivo, cinco por envio, 200 MB acumulados e tipos permitidos do plano geral; autorização, falhas e limpeza testadas. Recuperação operacional com janela de 30 minutos, sem agendamento.
+- [x] Número é único mesmo com criações simultâneas.
+- [x] Chamado, atividade de criação e `ticket.created.v1` são gravados na mesma transação. Falha em qualquer gravação desfaz todas.
+- [x] Testes demonstram criação válida, rejeições e rollback usando dados sintéticos. [Execução da 3.4](tarefa-3.4-abertura.md).
 
 ### 3.5 — Consultar Minhas solicitações, fila e detalhe
 
@@ -194,6 +194,8 @@ A implementação deverá alterar mais de cinco arquivos: schema/migration, cont
 Criar branch exclusiva de implementação a partir da main atual; este documento está em branch documental própria. Planejar commits coerentes de dados/contratos, regras/integrações e interface, com testes necessários acompanhando cada responsabilidade, e um único PR completo para main. Não criar hashes fictícios nem PRs por tarefa.
 
 O pedido original autorizava somente planejamento e documento. Em 13/11/2026, o usuário autorizou iniciar a 3.2 e usar o PostgreSQL existente no Docker; as verificações usaram bases sintéticas separadas no mesmo container. Depois, autorizou os três commits locais de persistência, contratos e documentação, incluindo o planejamento preexistente, e determinou não fazer push nem abrir PR. Implementação de autorização, dependências/configurações críticas, novos commits, push, PR, merge e deploy conservam suas aprovações específicas. Nenhum acesso a produção é necessário.
+
+Na continuação, o usuário solicitou implementar a 3.4 na mesma branch, sem push/PR, e autorizou especificamente SDK S3, configuração SeaweedFS local, bucket privado e testes sintéticos. Após a implementação e revisão independente, autorizou os três commits locais propostos, mantendo a proibição de push/PR. Credenciais existentes foram preservadas. A auditoria completa do histórico da etapa 3 permanece obrigatória antes da publicação.
 
 Modelo sugerido para implementar: GPT-6.1 com esforço alto de raciocínio, devido a isolamento de dados e concorrência; sem alteração da configuração atual.
 

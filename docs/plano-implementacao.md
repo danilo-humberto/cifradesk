@@ -384,6 +384,8 @@ Decisões da tarefa 3.1 aprovadas: [tarefas, regras e critérios de aceite](etap
 
 **Aceite:** mesma conta solicita e atende; solicitante acompanha demanda em outro setor; conflitos não sobrescrevem alterações silenciosamente.
 
+A [tarefa 3.4](tarefa-3.4-abertura.md) acrescentou criação transacional, API e anexos privados, implementados/testados e registrados em commits locais autorizados, sem push/PR. Consultas, operações e interface das 3.5–3.7 continuam pendentes.
+
 ### Etapa 4 — Conversas e anexos
 
 - [ ] Implementar mensagens persistentes e notas internas conforme matriz aprovada.
