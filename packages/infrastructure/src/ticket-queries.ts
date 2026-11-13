@@ -14,6 +14,7 @@ const ticketSelect = {
 type TicketRow = Prisma.TicketGetPayload<{ select: typeof ticketSelect }>;
 function serializeTicket(row: TicketRow) {
   return ticketResponse.parse({ ...row, assignees: row.assignees.map(a => a.user),
+    needsReassignment: ['IN_PROGRESS', 'REVIEW', 'DONE'].includes(row.status) && row.assignees.length === 0,
     dueDate: row.dueDate?.toISOString().slice(0, 10) ?? null,
     createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString() });
 }

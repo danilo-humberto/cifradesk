@@ -6,6 +6,7 @@ export const attachmentStatus = z.enum(['PENDING_UPLOAD', 'AVAILABLE', 'FAILED',
 export const activityVisibility = z.enum(['SHARED', 'INTERNAL']);
 const uuid = z.uuid();
 export const ticketIdInput = uuid;
+export const ticketOperation = z.enum(['update', 'status', 'transfer', 'reopen', 'assign']);
 export const ticketListScope = z.enum(['mine', 'queue']);
 const userId = z.string().min(1).max(128);
 const version = z.number().int().min(1).max(2147483647);
@@ -64,7 +65,7 @@ export const ticketResponse = z.object({
   originDepartmentId: uuid, originDepartmentName: z.string(),
   department: z.object({ id: uuid, name: z.string() }).strict(),
   status: ticketStatus, priority: ticketPriority, dueDate: z.iso.date().nullable(), version,
-  assignees: z.array(person), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime()
+  assignees: z.array(person), needsReassignment: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime()
 }).strict();
 // The caller must authorize and filter visibility before pagination. No object
 // key, outbox payload or internal reason is embedded in the ticket response.

@@ -3,6 +3,7 @@ import { database, type Prisma } from '@cifradesk/database';
 import { assertActive, assertAdmin, assertInvitation, assertAdminChange, canAssign, DomainError } from '@cifradesk/core';
 import { inviteInput, updateUserInput, departmentInput, acceptInput } from '@cifradesk/contracts/identity';
 import { auth, createAuth, sendMail } from './auth';
+import { removeTicketAssignments } from './ticket-operations';
 
 export const publicUser = { id: true, name: true, email: true, emailVerified: true, status: true, isAdmin: true, theme: true } as const;
 type Tx = Prisma.TransactionClient;
@@ -106,6 +107,7 @@ export async function updateIdentity(actorId: string, id: string, input: unknown
     const after = { ...before, ...patch };
     assertAdminChange(before, after, await tx.user.count({ where: { status: 'ACTIVE', isAdmin: true } }));
     if (patch.status === 'DISABLED') {
+      await removeTicketAssignments(tx, actorId, id);
       await tx.session.deleteMany({ where: { userId: id } });
       await tx.invitation.updateMany({ where: { userId: id, usedAt: null }, data: { revokedAt: new Date() } });
       await tx.verification.deleteMany({ where: { value: id } });
@@ -119,12 +121,20 @@ export async function createDepartment(actorId: string, input: unknown) {
 }
 export async function updateDepartment(actorId: string, id: string, input: unknown) {
   const data = departmentInput.parse(input);
-  return write(async tx => { await administrator(tx, actorId); return tx.department.update({ where: { id }, data }); });
+  return write(async tx => {
+    await administrator(tx, actorId);
+    if (data.active === false && await tx.ticket.count({ where: { departmentId: id, status: { not: 'CLOSED' } } }))
+      throw new DomainError(409, 'Transfira ou feche os chamados antes de desativar o setor.');
+    return tx.department.update({ where: { id }, data });
+  });
 }
 export async function setMembership(actorId: string, departmentId: string, userId: string, present: boolean) {
   await write(async tx => {
     await administrator(tx, actorId);
-    if (!present) { await tx.departmentMembership.deleteMany({ where: { departmentId, userId } }); return; }
+    if (!present) {
+      await removeTicketAssignments(tx, actorId, userId, departmentId);
+      await tx.departmentMembership.deleteMany({ where: { departmentId, userId } }); return;
+    }
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
     const department = await tx.department.findUniqueOrThrow({ where: { id: departmentId } });
     if (!canAssign(user.status, department.active)) throw new DomainError(409, 'Selecione usuário e setor ativos.');

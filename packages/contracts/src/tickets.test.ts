@@ -53,7 +53,7 @@ describe('ticket contracts', () => {
     const response = { id, number: 123, title: opening.title, description: opening.description,
       requestedFor: 'SELF', requesterName: 'Nome histórico', createdBy: person, originDepartmentId: id,
       originDepartmentName: 'Origem histórica', department: { id, name: 'Destino' },
-      status: 'OPEN', priority: 'NORMAL', dueDate: null, version: 1, assignees: [person], ...dates };
+      status: 'OPEN', priority: 'NORMAL', dueDate: null, version: 1, assignees: [person], needsReassignment: false, ...dates };
     expect(ticketResponse.safeParse(response).success).toBe(true);
     expect(ticketResponse.safeParse({ ...response, reason: 'Motivo interno' }).success).toBe(false);
     const attachment = { id, originalName: 'arquivo.pdf', mimeType: 'application/pdf', size: 100,
