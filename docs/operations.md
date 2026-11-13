@@ -110,7 +110,7 @@ Parar preserva volumes. Não usar `down -v`, limpeza global ou remoção de volu
 
 ## Limites
 
-SMTP de produção, TLS publicado, backup/restauração e carga continuam pendentes. A 3.4 implementa abertura via API e anexos privados localmente; a 3.5 acrescenta consultas autorizadas. A 3.6 acrescenta operações transacionais localmente; interface continua na 3.7. Categorias foram removidas do escopo. Filas de negócio não foram antecipadas. O lock transacional serializa mutações de identidade, login, reservas/criação e operações de chamados; medir contenção antes de ampliar a carga. A auditoria completa pode manter o advisory de tooling descrito nas evidências, sem equivaler a auditoria de runtime aprovada.
+SMTP de produção, TLS publicado, backup/restauração e carga continuam pendentes. A 3.4 implementa abertura via API e anexos privados localmente; a 3.5 acrescenta consultas autorizadas. A 3.6 acrescenta operações transacionais localmente; a [interface da 3.7](tarefa-3.7-interface.md) está implementada localmente, validada e revisada localmente, com commits locais autorizados. Categorias foram removidas do escopo. Filas de negócio não foram antecipadas. O lock transacional serializa mutações de identidade, login, reservas/criação e operações de chamados; medir contenção antes de ampliar a carga. A auditoria completa pode manter o advisory de tooling descrito nas evidências, sem equivaler a auditoria de runtime aprovada.
 
 ## Anexos privados — tarefa 3.4
 

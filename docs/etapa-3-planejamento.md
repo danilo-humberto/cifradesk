@@ -1,6 +1,6 @@
 # Etapa 3 — Chamados completos: tarefas e critérios de aceite
 
-Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7–3.8 não iniciadas.** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
+Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7 implementada, validada e revisada localmente, com commits locais autorizados; 3.8 não iniciada.** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
 
 ## Por que esta é a próxima etapa
 
@@ -18,7 +18,7 @@ Anexos na abertura foram incluídos pelo usuário na tarefa 3.1: antecipar o upl
 
 ## Decisões consolidadas — tarefa 3.1
 
-Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. Persistência (3.2), abertura e anexos via API (3.4) e consultas (3.5) estão implementados localmente; operações da 3.6 implementadas localmente; interface permanece pendente.
+Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. Persistência (3.2), abertura e anexos via API (3.4) e consultas (3.5) estão implementados localmente; operações da 3.6 implementadas localmente; interface da 3.7 implementada, validada e revisada localmente, com commits locais autorizados.
 
 ### Status
 
@@ -87,7 +87,7 @@ Compartilhado: abertura, status, responsáveis, setor, prioridade, prazo e resum
 
 ## Tarefas menores
 
-Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7–3.8 não iniciadas. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
+Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7 implementada, validada e revisada localmente, com commits locais autorizados; 3.8 não iniciada. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
 
 ### 3.1 — Fechar regras e matriz de acesso
 
@@ -162,16 +162,18 @@ Políticas de acesso autorizadas explicitamente pelo usuário em 13/11/2026. [Co
 
 ### 3.7 — Entregar a jornada na interface
 
+[Implementação e evidências locais](tarefa-3.7-interface.md). Validação local e revisão independente concluídas; com commits locais autorizados, sem push ou PR.
+
 **Dependências:** 3.4–3.6. **Entrega:** abertura, Minhas solicitações, fila e detalhe com controles shadcn/ui.
 
 **Critérios de aceite:**
 
-- [ ] Formulário e colunas seguem a seção consolidada; testar nome livre, departamento único/múltiplo/ausente, múltiplos avatares e filtro de FECHADA.
-- [ ] Usuário abre chamado, encontra-o na lista, consulta detalhes e executa somente as ações disponíveis para seu contexto.
-- [ ] Após sucesso, listas e detalhe refletem a alteração por invalidação das consultas; chaves incluem identidade/contexto e filtros. Sem promessa de tempo real nesta etapa.
-- [ ] Conflito informa que o item mudou e permite recarregar; não reenvia silenciosamente a edição sobre a versão nova.
-- [ ] Carregamento, vazio, erro, acesso negado e envio em andamento são distinguíveis; formulários têm rótulos, mensagens e navegação por teclado.
-- [ ] Fluxo funciona nos temas claro/escuro/automático e em tela pequena, preservando login, tema e limpeza de cache ao sair.
+- [x] Formulário e colunas seguem a seção consolidada; testar nome livre, departamento único/múltiplo/ausente, múltiplos avatares e filtro de FECHADA.
+- [x] Usuário abre chamado, encontra-o na lista, consulta detalhes e executa somente as ações disponíveis para seu contexto.
+- [x] Após sucesso, listas e detalhe refletem a alteração por invalidação das consultas; chaves incluem identidade/contexto e filtros. Sem promessa de tempo real nesta etapa.
+- [x] Conflito informa que o item mudou e permite recarregar; não reenvia silenciosamente a edição sobre a versão nova.
+- [x] Carregamento, vazio, erro, acesso negado e envio em andamento são distinguíveis; formulários têm rótulos, mensagens e navegação por teclado.
+- [x] Fluxo funciona nos temas claro/escuro/automático e em tela pequena, preservando login, tema e limpeza de cache ao sair.
 
 ### 3.8 — Validar, revisar e documentar a entrega
 

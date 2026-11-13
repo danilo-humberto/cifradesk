@@ -14,6 +14,8 @@ O [plano](plano-implementacao.md) é a referência dos requisitos. A fundação 
 
 O lint impede importação direta de database/infrastructure na interface. Entradas Next.js de servidor usam a barreira `server-only`; a exceção do lint é restrita a lib/server.
 
+A [interface de chamados da 3.7](tarefa-3.7-interface.md) usa páginas de servidor para identidade e componentes de cliente com TanStack Query. Chaves incluem identidade, contexto, filtros e página; mutações invalidam consultas. O editor preserva a versão inicial até recarga explícita. Consultas de opções revalidam sessão/vínculos e retornam dados mínimos paginados; anexos reutilizam a autorização do detalhe. Histórico mantém IDs originais e resolve nomes atuais somente das referências presentes na página autorizada.
+
 ## Interface
 
 Paleta: azul `#315dc7`, texto `#24334a`, fundo `#f5f7fb`, superfície branca, borda `#dce3ee`; escuro neutro `#18181b`, superfícies `#202023` e texto `#f4f4f5`. Tipografia Segoe UI com fallback local, sem download de fontes no build. Sidebar de 320 px, recolhível para faixa de ícones de 56 px com Tooltip no desktop; em celular, painel Sheet com fechamento por Escape, botão e seleção de destino. Sem JavaScript, a navegação permanece visível, acima do conteúdo no celular.
