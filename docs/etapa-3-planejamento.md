@@ -1,6 +1,6 @@
 # Etapa 3 — Chamados completos: tarefas e critérios de aceite
 
-Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6–3.8 não iniciadas.** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
+Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7–3.8 não iniciadas.** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
 
 ## Por que esta é a próxima etapa
 
@@ -18,7 +18,7 @@ Anexos na abertura foram incluídos pelo usuário na tarefa 3.1: antecipar o upl
 
 ## Decisões consolidadas — tarefa 3.1
 
-Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. Persistência (3.2), abertura e anexos via API (3.4) e consultas (3.5) estão implementados localmente; operações e interface permanecem pendentes.
+Requisitos confirmados pelo usuário. Task significa chamado; não unifica tarefas independentes da etapa 5. Persistência (3.2), abertura e anexos via API (3.4) e consultas (3.5) estão implementados localmente; operações da 3.6 implementadas localmente; interface permanece pendente.
 
 ### Status
 
@@ -87,7 +87,7 @@ Compartilhado: abertura, status, responsáveis, setor, prioridade, prazo e resum
 
 ## Tarefas menores
 
-Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5 registrada em commits locais autorizados; 3.6–3.8 não iniciadas. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
+Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7–3.8 não iniciadas. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
 
 ### 3.1 — Fechar regras e matriz de acesso
 
@@ -151,12 +151,14 @@ Políticas de acesso autorizadas explicitamente pelo usuário em 13/11/2026. [Co
 
 **Critérios de aceite:**
 
-- [ ] Integrantes operam conforme a matriz aprovada, sem hierarquia de gestor; responsáveis e destinos são revalidados em cada alteração.
-- [ ] Status inválido e ação proibida são negados sem mudar dados; não há aprovação pelo solicitante nem status removidos.
-- [ ] Toda alteração aceita grava dados, histórico e evento correspondente juntos. Contratos incluem `ticket.assigned.v1` e `ticket.status_changed.v1`; demais eventos necessários são documentados.
-- [ ] Atualização compara a versão recebida e a incrementa atomicamente; duas edições da mesma versão permitem somente uma gravação. A outra retorna conflito, sem histórico/evento de sucesso.
-- [ ] Transferência e perda de vínculo seguem 3.1, sem manter acesso indevido nem responsáveis incompatíveis.
-- [ ] Testes concorrentes verificam intercalações reais, além de testes unitários das transições e permissões.
+- [x] Integrantes operam conforme a matriz aprovada, sem hierarquia de gestor; responsáveis e destinos são revalidados em cada alteração.
+- [x] Status inválido e ação proibida são negados sem mudar dados; não há aprovação pelo solicitante nem status removidos.
+- [x] Toda alteração aceita grava dados, histórico e evento correspondente juntos. Contratos incluem `ticket.assigned.v1` e `ticket.status_changed.v1`; demais eventos necessários são documentados.
+- [x] Atualização compara a versão recebida e a incrementa atomicamente; duas edições da mesma versão permitem somente uma gravação. A outra retorna conflito, sem histórico/evento de sucesso.
+- [x] Transferência e perda de vínculo seguem 3.1, sem manter acesso indevido nem responsáveis incompatíveis.
+- [x] Testes concorrentes verificam intercalações reais, além de testes unitários das transições e permissões.
+
+[Contratos, evidências e limites da 3.6](tarefa-3.6-operacoes.md). Políticas de autorização aprovadas explicitamente em 13/11/2026; commits locais autorizados, sem push ou PR.
 
 ### 3.7 — Entregar a jornada na interface
 
@@ -202,6 +204,3 @@ Na continuação, o usuário solicitou implementar a 3.4 na mesma branch, sem pu
 Modelo sugerido para implementar: GPT-6.1 com esforço alto de raciocínio, devido a isolamento de dados e concorrência; sem alteração da configuração atual.
 
 **Validação deste planejamento:** leitura do plano, schema, políticas de identidade, registro da etapa 2 e estado do PR/base remota. Não foram executados testes da aplicação nem migrations para criar este documento.
-
-
-

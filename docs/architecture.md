@@ -42,3 +42,7 @@ Cabeçalho de 56 px com Breadcrumb contextual e indicação única de prévia. C
 
 A troca manual usa View Transitions e Web Animations para revelar o novo tema com clip-path circular, partindo do centro do SelectTrigger até o canto mais distante da viewport, em 550 ms. A lista fecha e o foco retorna ao acionador antes da captura. O estado next-themes é sincronizado com flushSync; a preferência continua persistida. Escolhas feitas durante a animação são consolidadas na última escolha e processadas ao concluir. Sem API, com movimento reduzido ou sem mudança efetiva de cores, a preferência muda imediatamente. Mudanças automáticas do sistema não iniciam animação.
 Logo oficial fornecida pelo usuário em PNG transparente, preservada sem recorte em apps/web/src/assets/logo-cifra.png. Favicon servido pela convenção Next app/icon.png. A marca permanece visível na faixa de ícones, sem o texto Equipe Cifra. No celular, painel de até 320 px, limitado pela viewport.
+
+## Operações de chamados — tarefa 3.6
+
+Operações reutilizam a transação e o advisory lock da identidade, revalidam setor/integrantes e comparam a versão antes de gravar. Estado, atribuições, histórico e outbox são atômicos; motivos internos ficam separados do histórico compartilhado. Remoção de vínculo/desativação atualiza atribuições na transação administrativa. Consultas derivam `needsReassignment` para IN_PROGRESS/REVIEW/DONE sem responsáveis. [Contrato e limites](tarefa-3.6-operacoes.md), incluindo contenção global e timeout de remoções em volume; sem migration ou serviço novo.
