@@ -1,1 +1,1 @@
-{"name":"@cifradesk/contracts","version":"0.1.0","private":true,"type":"module","exports":{".":"./src/index.ts","./identity":"./src/identity.ts"},"scripts":{"typecheck":"tsc --noEmit"},"dependencies":{"zod":"4.6.7"}}
+{"name":"@cifradesk/contracts","version":"0.1.0","private":true,"type":"module","exports":{".":"./src/index.ts","./identity":"./src/identity.ts","./tickets":"./src/tickets.ts"},"scripts":{"typecheck":"tsc --noEmit"},"dependencies":{"zod":"4.6.7"}}
