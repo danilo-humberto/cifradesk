@@ -5,6 +5,8 @@ export const ticketPriority = z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']);
 export const attachmentStatus = z.enum(['PENDING_UPLOAD', 'AVAILABLE', 'FAILED', 'PENDING_DELETION']);
 export const activityVisibility = z.enum(['SHARED', 'INTERNAL']);
 const uuid = z.uuid();
+export const ticketIdInput = uuid;
+export const ticketListScope = z.enum(['mine', 'queue']);
 const userId = z.string().min(1).max(128);
 const version = z.number().int().min(1).max(2147483647);
 const title = z.string().trim().min(5).max(150);
@@ -34,9 +36,11 @@ export const ticketTransferInput = z.object({ expectedVersion: version, departme
 export const ticketReopenInput = z.object({ expectedVersion: version, reason: z.string().trim().min(1).max(10000) }).strict();
 export const ticketAssigneesInput = z.object({ expectedVersion: version, userIds: z.array(userId) }).strict()
   .refine(value => new Set(value.userIds).size === value.userIds.length, 'Responsável repetido.');
-export const ticketListInput = z.object({
+export const ticketPageInput = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25)
+}).strict();
+export const ticketListInput = ticketPageInput.extend({
   status: ticketStatus.optional(), departmentId: uuid.optional(), assigneeId: userId.optional()
 }).strict();
 
@@ -69,6 +73,9 @@ export const ticketActivityResponse = z.object({
   changes: z.record(z.string(), z.unknown()), reason: z.string().nullable(),
   visibility: activityVisibility, createdAt: z.iso.datetime()
 }).strict();
+const pageResponse = { page: z.number().int().positive(), pageSize: z.number().int().min(1).max(100), total: z.number().int().nonnegative() };
+export const ticketListResponse = z.object({ ...pageResponse, items: z.array(ticketResponse) }).strict();
+export const ticketActivityListResponse = z.object({ ...pageResponse, items: z.array(ticketActivityResponse) }).strict();
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 export type TicketResponse = z.infer<typeof ticketResponse>;
 export type TicketStatus = z.infer<typeof ticketStatus>;
