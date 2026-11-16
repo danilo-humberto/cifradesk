@@ -32,12 +32,13 @@ export function SessionBoundary({ id, theme, children }: { id: string; theme: st
   }, [id, query]);
   return children;
 }
-export function SessionControls() {
+export function useLogout() {
   const router = useRouter();
   const query = useQueryClient();
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   async function logout(all: boolean) {
+    if (pending) return;
     setPending(true); setError('');
     try {
       const response = await fetch(all ? '/api/me' : '/api/auth/sign-out', { method: all ? 'DELETE' : 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
@@ -45,6 +46,10 @@ export function SessionControls() {
       feedback.clear(); query.clear(); router.replace('/login'); router.refresh();
     } catch (error) { const text = error instanceof Error ? error.message : 'Falha de conexão.'; setError(text); feedback.error(text); setPending(false); }
   }
+  return { logout, pending, error };
+}
+export function SessionControls() {
+  const { logout, pending, error } = useLogout();
   return <section className="mt-6 space-y-4" aria-labelledby="sessions-title"><h2 id="sessions-title">Acesso e sessões</h2>
     <div className="flex flex-wrap gap-3"><Button variant="outline" disabled={pending} onClick={() => void logout(false)}>Sair</Button>
     <ConfirmButton label="Encerrar todas as sessões" description="Você precisará entrar novamente em todos os dispositivos." disabled={pending} onConfirm={() => logout(true)} /></div>

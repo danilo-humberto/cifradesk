@@ -2,6 +2,51 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
+.sidebar-sliding-menu {
+  --nav-item-height: 2.5rem;
+  position: relative;
+  isolation: isolate;
+}
+[data-collapsible="icon"] .sidebar-sliding-menu { --nav-item-height: 2rem; }
+.sidebar-sliding-menu::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  inset: 0 0 auto;
+  height: var(--nav-item-height);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  opacity: 0;
+  transform: translateY(calc(var(--active-index) * (var(--nav-item-height) + .25rem)));
+}
+.sidebar-sliding-menu[data-has-active="true"]::before { opacity: 1; }
+.sidebar-sliding-menu .sidebar-navigation-link {
+  transition: background-color 200ms ease, color 200ms ease;
+}
+.sidebar-sliding-menu .sidebar-navigation-link[data-active="true"] { background: transparent; }
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar-sliding-menu::before { transition: transform 200ms ease, opacity 200ms ease; }
+}
+@supports (anchor-scope: --sidebar-active) and (top: anchor(top)) {
+  .sidebar-sliding-menu { anchor-scope: --sidebar-active; }
+  .sidebar-sliding-menu [aria-current="page"] { anchor-name: --sidebar-active; }
+  .sidebar-sliding-menu[data-has-active="true"]::before {
+    position-anchor: --sidebar-active;
+    inset-block-start: anchor(top);
+    inset-block-end: anchor(bottom);
+    height: auto;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sidebar-sliding-menu::before { transition: inset-block-start 200ms ease, inset-block-end 200ms ease, opacity 200ms ease; }
+  }
+}
+@media (forced-colors: active) {
+  .sidebar-sliding-menu::before { border-color: Highlight; }
+}
+
 .auth-page { display: grid; min-height: 100dvh; place-items: center; padding: 32px 20px; }
 .auth-container { width: min(100%, 480px); }
 .auth-card { gap: 32px; padding-block: 36px; border-radius: 20px; box-shadow: 0 16px 60px -32px #0006; }

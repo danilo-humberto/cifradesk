@@ -71,3 +71,7 @@ Componentes usam shadcn/ui; AlertDialog foi incorporado do registro new-york-v4 
 ## Efeitos sobre chamados — tarefa 3.6
 
 Remover vínculo ou desativar conta remove suas atribuições nos chamados afetados, preserva outros responsáveis e o status, incrementa a versão e grava histórico interno/outbox na mesma transação administrativa. Desativação de setor com chamados não FECHADOS é bloqueada. Consulta histórica autorizada de setor inativo permanece disponível. [Regras, sinalização de reatribuição e limite transacional em volume](tarefa-3.6-operacoes.md).
+
+### Menu da conta na sidebar
+
+O layout autenticado passa somente nome, e-mail e imagem da conta para o rodapé. O menu shadcn oferece notificações, preferências e encerramento da sessão atual. O hook useLogout é compartilhado com Preferências, preservando os endpoints e a limpeza de cache/toasts após sucesso; falhas permitem nova tentativa. A opção de encerrar todas as sessões permanece em Preferências com confirmação. Os links continuam disponíveis sem JavaScript; a saída exige JavaScript. Evidências e limites desta alteração estão em base-visual.md, seção “Sidebar animada e menu da conta”.
