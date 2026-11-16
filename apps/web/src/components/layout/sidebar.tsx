@@ -38,10 +38,10 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
       <SidebarHeader className="gap-0 p-3 pb-5">
         <Link href="/" onClick={closeMobile} className="flex min-h-16 items-center gap-3 group-data-[collapsible=icon]:min-h-10" aria-label="CifraDesk, início">
           <Image src={logo} alt="Logo Cifra" className="h-16 w-14 max-w-none shrink-0 object-contain group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-8" unoptimized />
-          <span className={`${brandFont.className} min-w-0 break-words text-[1.75rem] leading-tight font-semibold tracking-[0.06em] group-data-[collapsible=icon]:hidden`}>CifraDesk</span>
+          <span className={`${brandFont.className} min-w-0 overflow-hidden whitespace-nowrap text-[1.75rem] leading-tight font-semibold tracking-[0.06em]`}>CifraDesk</span>
         </Link>
       </SidebarHeader>
-      <SidebarContent><SidebarGroup className="px-3">{menu(links.slice(0, 3))}{isAdmin && menu([{ href: '/admin', label: 'Administração', icon: Settings2 }])}</SidebarGroup></SidebarContent>
+      <SidebarContent><SidebarGroup className="px-3">{menu([...links.slice(0, 3), ...(isAdmin ? [{ href: '/admin', label: 'Administração', icon: Settings2 }] : [])])}</SidebarGroup></SidebarContent>
       <SidebarFooter className="gap-3 p-3"><Separator />{menu(links.slice(3))}</SidebarFooter>
     </nav>
   </Sidebar>;
