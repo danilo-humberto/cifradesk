@@ -151,6 +151,7 @@ a { text-decoration: none; }
 button, select { font: inherit; }
 a, button, select { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+[data-slot="dropdown-menu-content"][data-input-method="pointer"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):focus-visible { outline: none; }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; padding: 12px 20px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); border-radius: 8px; }
 .skip-link:focus { top: 12px; }
 .main-shell { min-width: 0; flex: 1; }
