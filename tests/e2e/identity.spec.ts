@@ -20,15 +20,15 @@ test('convite administrativo, login, recuperação e revogação pelo servidor',
   await page.getByLabel('Nome', { exact: true }).first().fill('Nova pessoa');
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Enviar convite', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Alteração salva.' })).toBeVisible();
+  await expect(page.getByRole('region', { name: /Notificações/ }).getByText('Alteração salva.', { exact: true })).toBeVisible();
   const link = await emailLink(email, 'accept-invitation');
   const context = await browser.newContext({ baseURL });
   const invited = await context.newPage();
   await invited.goto(link);
   await invited.getByLabel('Senha', { exact: true }).fill(syntheticPassword);
   await invited.getByRole('button', { name: 'Ativar minha conta' }).click();
-  await expect(invited.getByRole('status')).toContainText('Senha salva');
-  await invited.getByRole('link', { name: 'Voltar para entrar' }).click();
+  await expect(invited.getByRole('region', { name: /Notificações/ })).toContainText('Senha salva');
+  await invited.getByRole('link', { name: 'Entrar no CifraDesk', exact: true }).click();
   await invited.getByLabel('E-mail').fill(email);
   await invited.getByLabel('Senha', { exact: true }).fill(syntheticPassword);
   await invited.getByRole('button', { name: 'Entrar', exact: true }).click();
@@ -50,7 +50,7 @@ test('recuperação por e-mail troca a senha, revoga sessões e permite encerrar
   await resetPage.goto(reset);
   await resetPage.getByLabel('Senha', { exact: true }).fill('New-synthetic-e2e-123!');
   await resetPage.getByRole('button', { name: 'Salvar nova senha' }).click();
-  await expect(resetPage.getByRole('status')).toContainText('Senha salva');
+  await expect(resetPage.getByRole('region', { name: /Notificações/ })).toContainText('Senha salva');
   expect((await request.get('/api/me')).status()).toBe(401);
   expect((await resetting.request.post('/api/auth/sign-in/email', { headers: { Origin: baseURL! }, data: { email, password: 'New-synthetic-e2e-123!' } })).status()).toBe(200);
   expect((await resetting.request.delete('/api/me', { headers: { Origin: baseURL!, 'Content-Type': 'application/json' }, data: {} })).status()).toBe(200);
@@ -69,7 +69,7 @@ test('setores, integrantes e confirmação acessível', async ({ page, identity,
   const name = 'Setor ' + randomUUID().slice(0, 8);
   await page.getByLabel('Nome', { exact: true }).fill(name);
   await page.getByRole('button', { name: 'Criar setor' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Alteração salva' })).toBeVisible();
+  await expect(page.getByRole('region', { name: /Notificações/ }).getByText('Alteração salva.', { exact: true })).toBeVisible();
   const department = await database().department.findFirstOrThrow({ where: { name } });
   expect((await request.post('/api/admin/departments/' + department.id + '/members', { headers: { Origin: baseURL! }, data: { userId: identity.id } })).status()).toBe(200);
   const card = page.locator('[data-slot="card"]').filter({ has: page.locator('input[value="' + name + '"]') });

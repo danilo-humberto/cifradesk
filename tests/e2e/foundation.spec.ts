@@ -46,7 +46,9 @@ test('select de tema usa lista acessível e teclado', async ({ page }) => {
   await theme.focus();
   await page.keyboard.press('Space');
   await expect(page.getByRole('listbox')).toBeVisible();
+  await expect(page.getByRole('option', { name: /Automático/ })).toBeFocused();
   await page.keyboard.press('End');
+  await expect(page.getByRole('option', { name: 'Escuro', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(theme).toHaveText('Escuro');
   await expect(page.locator('html')).toHaveClass('dark');

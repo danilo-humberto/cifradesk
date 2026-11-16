@@ -53,7 +53,7 @@ test('responsáveis múltiplos, fechamento, filtro e conflito sem reenvio', asyn
   await page.getByRole('checkbox', { name: 'E2E Admin' }).check();
   await page.getByRole('checkbox', { name: other.name }).check();
   await page.getByRole('button', { name: 'Salvar alteração' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Dados atualizados.' })).toBeVisible();
+  await expect(page.getByRole('region', { name: /Notificações/ }).getByText('Dados atualizados.', { exact: true })).toBeVisible();
   await expect(page.locator('dd').getByRole('img', { name: 'Ágata de Sá' })).toBeVisible();
   // Another session changes the version after this editor has loaded.
   const response = await request.post(`/api/tickets/${ticket.id}/operations/update`, { headers: { Origin: baseURL! }, data: { expectedVersion: 2, priority: 'HIGH' } });
@@ -62,7 +62,7 @@ test('responsáveis múltiplos, fechamento, filtro e conflito sem reenvio', asyn
   await page.getByRole('option', { name: 'FECHADA', exact: true }).click();
   await page.getByLabel('Motivo (interno, obrigatório)').fill('Encerrado pelo teste');
   await page.getByRole('button', { name: 'Salvar alteração' }).click();
-  await expect(page.getByText('O chamado mudou. Recarregue antes de editar.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByText('O chamado mudou. Recarregue antes de editar.', { exact: true })).toBeVisible();
   expect((await database().ticket.findUniqueOrThrow({ where: { id: ticket.id } })).status).toBe('OPEN');
   await page.getByRole('button', { name: 'Recarregar chamado', exact: true }).click();
   await page.getByRole('combobox', { name: 'Novo status' }).click();
@@ -112,7 +112,7 @@ test('erro de anexos permite recuperação sem duplicar abertura', async ({ page
   await page.getByRole('option', { name: sector.name }).click();
   await page.getByLabel('Anexe algum arquivo').setInputFiles({ name: 'teste.txt', mimeType: 'text/plain', buffer: Buffer.from('conteúdo sintético') });
   await page.getByRole('button', { name: 'Criar chamado', exact: true }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'já foi criado' })).toBeVisible();
+  await expect(page.getByRole('form', { name: 'Abertura de chamado' }).getByText(/já foi criado/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Conferir chamado e anexos' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Criar chamado' })).toHaveCount(0);
   expect(await database().ticket.count({ where: { createdById: identity.id } })).toBe(1);
@@ -158,11 +158,11 @@ test('duas sessões de navegador preservam a primeira edição e exigem recarga'
       await editor.getByRole('option', { name: 'PENDENTE', exact: true }).click();
     }
     await page.getByRole('button', { name: 'Salvar alteração' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Dados atualizados.' })).toBeVisible();
+    await expect(page.getByRole('region', { name: /Notificações/ }).getByText('Dados atualizados.', { exact: true })).toBeVisible();
     const conflict = other.waitForResponse(response => response.url().endsWith(`/api/tickets/${ticket.id}/operations/status`) && response.status() === 409);
     await other.getByRole('button', { name: 'Salvar alteração' }).click();
     await conflict;
-    await expect(other.getByText('O chamado mudou. Recarregue antes de editar.', { exact: true })).toBeVisible();
+    await expect(other.getByRole('main').getByText('O chamado mudou. Recarregue antes de editar.', { exact: true })).toBeVisible();
     await expect(other.getByRole('button', { name: 'Salvar alteração' })).toBeDisabled();
     const saved = await database().ticket.findUniqueOrThrow({ where: { id: ticket.id } });
     expect(saved.version).toBe(2);
@@ -194,7 +194,7 @@ test('terceiro é negado; vínculo permite operar; desativação revoga a sessã
     await viewer.getByRole('combobox', { name: 'Novo status' }).click();
     await viewer.getByRole('option', { name: 'PENDENTE', exact: true }).click();
     await viewer.getByRole('button', { name: 'Salvar alteração' }).click();
-    await expect(viewer.getByRole('status').filter({ hasText: 'Dados atualizados.' })).toBeVisible();
+    await expect(viewer.getByRole('region', { name: /Notificações/ }).getByText('Dados atualizados.', { exact: true })).toBeVisible();
     expect((await request.patch(`/api/admin/users/${user.id}`, { headers: { Origin: baseURL! }, data: { status: 'DISABLED' } })).status()).toBe(200);
     expect((await member.request.get(`/api/tickets/${ticket.id}`)).status()).toBe(401);
     expect((await member.request.post(`/api/tickets/${ticket.id}/operations/status`, { headers: { Origin: baseURL! }, data: { expectedVersion: 2, status: 'OPEN' } })).status()).toBe(401);

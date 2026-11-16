@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmButton } from '@/components/confirm-button';
+import { feedback } from '@/lib/feedback';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 type Result<T> = { items: T[]; total: number; page: number };
@@ -75,15 +76,14 @@ export function AdminPanel() {
   const [page, setPage] = useState(1);
   const [department, setDepartment] = useState<PublicDepartment | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
-  const [failed, setFailed] = useState(false);
+  const [error, setError] = useState('');
   const query = useQueryClient();
   const users = useQuery({ queryKey: ['admin', 'users', page], queryFn: () => api<Result<PublicUser>>('users?page=' + page), enabled: section === 'users' });
   const departments = useQuery({ queryKey: ['admin', 'departments', page], queryFn: () => api<Result<PublicDepartment>>('departments?page=' + page), enabled: section === 'departments' });
   async function mutate(path: string, method: string, data?: unknown) {
-    setBusy(true); setMessage(''); setFailed(false);
-    try { await api(path, method, data); setMessage('Alteração salva.'); return true; }
-    catch (error) { setFailed(true); setMessage(error instanceof Error ? error.message : 'Falha de conexão.'); return false; }
+    setBusy(true); setError('');
+    try { await api(path, method, data); feedback.success('Alteração salva.'); return true; }
+    catch (error) { const text = error instanceof Error ? error.message : 'Falha de conexão.'; setError(text); feedback.error(text); return false; }
     finally { await query.invalidateQueries({ queryKey: ['admin'] }); setBusy(false); }
   }
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -94,7 +94,7 @@ export function AdminPanel() {
   const current = section === 'users' ? users : departments;
   return <div className="max-w-4xl space-y-5">
     <div className="flex flex-wrap gap-2"><Button disabled={!mounted} variant={section === 'users' ? 'default' : 'outline'} onClick={() => { setSection('users'); setPage(1); setDepartment(null); }}>Usuários</Button><Button disabled={!mounted} variant={section === 'departments' ? 'default' : 'outline'} onClick={() => { setSection('departments'); setPage(1); }}>Setores</Button></div>
-    <p role={failed ? 'alert' : 'status'}>{message}</p>
+    {error && <p className="feedback-inline-error">{error}</p>}
     <Card className="gap-4 p-5"><h2 className="font-semibold">{section === 'users' ? 'Convidar pessoa' : 'Novo setor'}</h2>
       <form method="post" key={section} onSubmit={create} className="space-y-3">
         <Label htmlFor="new-name">Nome</Label><Input id="new-name" name="name" required maxLength={120} autoComplete={section === 'users' ? 'name' : 'off'} />

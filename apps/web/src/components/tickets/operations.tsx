@@ -1,5 +1,6 @@
 'use client';
-import { useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { feedback } from '@/lib/feedback';
 import { useQuery } from '@tanstack/react-query';
 import type { TicketResponse, TicketStatus, TicketPriority } from '@cifradesk/contracts/tickets';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,6 @@ export function TicketOperations({ userId, ticket, refresh }: { userId: string; 
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [error, setError] = useState('');
-  const errorRef = useRef<HTMLParagraphElement>(null);
   const members = useQuery({ queryKey: ['tickets', userId, 'members', ticket.department.id, memberPage], queryFn: ({ signal }) => ticketApi<OptionPage>(`/api/tickets/options?scope=members&departmentId=${ticket.department.id}&page=${memberPage}`, { signal }), retry: false });
   const needsReason = operation === 'transfer' || operation === 'reopen' || (operation === 'status' && (status === 'BLOCKED' || (baseline.status === 'CLOSED' && status !== 'CLOSED') || (status === 'CLOSED' && ['OPEN', 'PENDING'].includes(baseline.status))));
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -48,8 +48,8 @@ export function TicketOperations({ userId, ticket, refresh }: { userId: string; 
     try { await postTicket(`/api/tickets/${ticket.id}/operations/${operation}`, data); await refresh(); }
     catch (error) {
       setConflict(error instanceof TicketApiError && error.status === 409);
-      setError(error instanceof Error ? error.message : 'Falha de conexão.');
-      requestAnimationFrame(() => errorRef.current?.focus());
+      const text = error instanceof Error ? error.message : 'Falha de conexão.';
+      setError(text); feedback.error(text);
     } finally { setBusy(false); }
   }
   if (members.isPending) return <p role="status">Verificando ações disponíveis…</p>;
@@ -57,9 +57,9 @@ export function TicketOperations({ userId, ticket, refresh }: { userId: string; 
   if (members.error) return <QueryError error={members.error} reload={() => void members.refetch()} />;
   const options = [{ id: 'status', name: 'Alterar status' }, { id: 'assign', name: 'Definir responsáveis' }, { id: 'update', name: 'Editar dados, prioridade e prazo' }, ...(!['DONE', 'CLOSED'].includes(baseline.status) ? [{ id: 'transfer', name: 'Transferir setor' }] : []), ...(baseline.status === 'CLOSED' ? [{ id: 'reopen', name: 'Reabrir chamado' }] : [])];
   return <Card className="p-5"><h2 className="text-lg font-semibold">Atendimento</h2>
-    <p ref={errorRef} tabIndex={-1} role="alert">{error}</p>
+    {error && <p id="operation-error" className="feedback-inline-error">{error}</p>}
     {(conflict || baseline.version !== ticket.version) && <div className="space-y-3"><p>O chamado mudou. Recarregue para revisar os dados atuais. Seu rascunho será descartado; nada será reenviado automaticamente.</p><Button type="button" disabled={busy} onClick={() => void refresh()}>Recarregar chamado</Button></div>}
-    <form method="post" onSubmit={submit} aria-label="Atendimento do chamado" className="space-y-4" aria-busy={busy}>
+    <form method="post" onSubmit={submit} aria-label="Atendimento do chamado" aria-describedby={error ? 'operation-error' : undefined} className="space-y-4" aria-busy={busy}>
       <fieldset disabled={busy || conflict || baseline.version !== ticket.version} className="space-y-4"><legend className="sr-only">Operação e dados do atendimento</legend>
         <Choice id="operation" label="Ação" value={operation} onChange={setOperation} options={options} />
         {operation === 'status' && <><Choice id="new-status" label="Novo status" value={status} onChange={value => setStatus(value as TicketStatus)} options={Object.entries(statusLabels).map(([id, name]) => ({ id, name }))} />{['IN_PROGRESS', 'REVIEW', 'DONE'].includes(status) && baseline.assignees.length === 0 && <p>Defina pelo menos um responsável antes de entrar neste status.</p>}

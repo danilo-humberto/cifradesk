@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { feedback } from '@/lib/feedback';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { createTicketInput, ticketUploadInput, formatTicketNumber } from '@cifradesk/contracts/tickets';
@@ -22,7 +23,6 @@ export function TicketOpening({ userId, name }: { userId: string; name: string }
   const [error, setError] = useState('');
   const [created, setCreated] = useState<{ id: string; number: number } | null>(null);
   const [files, setFiles] = useState<File[]>([]);
-  const errorRef = useRef<HTMLParagraphElement>(null);
   const origins = useQuery({ queryKey: ['tickets', userId, 'options', 'origins', 1], queryFn: ({ signal }) => ticketApi<OptionPage>('/api/tickets/options?scope=origins&page=1', { signal }) });
   const originId = origins.data?.total === 1 ? origins.data.items[0]!.id : origin;
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -48,16 +48,17 @@ export function TicketOpening({ userId, name }: { userId: string; name: string }
       }
       await cache.invalidateQueries({ queryKey: ticketKeys.all(userId) });
       router.push(`/requests/${current.id}`);
+      feedback.success(`Chamado ${formatTicketNumber(current.number)} criado.`);
     } catch (error) {
-      setError((current ? `O chamado ${formatTicketNumber(current.number)} já foi criado. O envio dos anexos não foi confirmado; confira o detalhe antes de reenviar. ` : '') + (error instanceof Error ? error.message : 'Falha de conexão.'));
-      requestAnimationFrame(() => errorRef.current?.focus());
+      const text = (current ? `O chamado ${formatTicketNumber(current.number)} já foi criado. O envio dos anexos não foi confirmado; confira o detalhe antes de reenviar. ` : '') + (error instanceof Error ? error.message : 'Falha de conexão.');
+      setError(text); feedback.error(text);
     } finally { setBusy(false); }
   }
   return <div className="max-w-3xl space-y-6 p-4 md:p-8"><Button asChild variant="outline"><Link href="/requests">Minhas solicitações</Link></Button><h1 className="text-2xl font-semibold">Abrir chamado</h1>
     {origins.isPending && <p role="status">Carregando seus departamentos…</p>}{origins.error && <QueryError error={origins.error} reload={() => void origins.refetch()} />}
     {origins.data?.total === 0 ? <p role="alert">Você não possui vínculo com um departamento ativo. Procure o administrador para abrir chamados.</p> : origins.data && !origins.error && <Card className="p-5">
-      <form method="post" onSubmit={submit} className="space-y-5" aria-label="Abertura de chamado" aria-busy={busy}>
-        <p ref={errorRef} tabIndex={-1} role="alert">{error}</p>
+      <form method="post" onSubmit={submit} className="space-y-5" aria-label="Abertura de chamado" aria-describedby={error ? 'opening-error' : undefined} aria-busy={busy}>
+        {error && <p id="opening-error" className="feedback-inline-error">{error}</p>}
         {created ? <div className="space-y-3"><p>Chamado {formatTicketNumber(created.number)} criado. A abertura não será repetida.</p><Button asChild><Link href={`/requests/${created.id}`}>Conferir chamado e anexos</Link></Button></div> : <fieldset disabled={busy} className="space-y-5"><legend className="sr-only">Dados obrigatórios do chamado</legend>
           <div className="space-y-2"><Label htmlFor="title">Informe o que deseja? (obrigatório)</Label><Input id="title" name="title" required minLength={5} maxLength={150} /><p className="text-sm text-muted-foreground">De 5 a 150 caracteres.</p></div>
           <div className="space-y-2"><Label htmlFor="description">Descreva sua requisição (obrigatório)</Label><Textarea id="description" name="description" required minLength={10} maxLength={10000} /><p className="text-sm text-muted-foreground">De 10 a 10.000 caracteres, em texto simples.</p></div>
