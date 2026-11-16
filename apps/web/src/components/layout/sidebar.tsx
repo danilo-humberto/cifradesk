@@ -35,9 +35,9 @@ export function AppSidebar({ isAdmin = false, user }: { isAdmin?: boolean; user:
   const activeIndex = items.findIndex(({ href }) => href === '/' ? pathname === href : pathname === href || pathname.startsWith(href + '/'));
   const menu = <SidebarMenu className="sidebar-sliding-menu" data-has-active={activeIndex >= 0} style={{ '--active-index': Math.max(activeIndex, 0) } as CSSProperties}>{items.map(({ href, label, icon: Icon }, index) => (
     <SidebarMenuItem key={href}>
-      <SidebarMenuButton asChild tooltip={label} isActive={activeIndex === index} className="sidebar-navigation-link h-10 gap-3 [&>svg]:size-[18px]">
+      <SidebarMenuButton asChild tooltip={label} isActive={activeIndex === index} className="sidebar-navigation-link h-10 gap-3 group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-[7px]! [&>svg]:size-[18px]">
         <Link href={href} aria-label={label} onClick={closeMobile} aria-current={activeIndex === index ? 'page' : undefined}>
-          <Icon aria-hidden="true" /><span className="group-data-[collapsible=icon]:hidden">{label}</span>
+          <Icon aria-hidden="true" /><span className="sidebar-label">{label}</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -51,9 +51,9 @@ export function AppSidebar({ isAdmin = false, user }: { isAdmin?: boolean; user:
   return <Sidebar collapsible="icon" resizable>
     <nav aria-label="Navegação principal" className="flex h-full min-h-0 flex-col">
       <SidebarHeader className="gap-0 p-3 pb-5">
-        <Link href="/" onClick={closeMobile} className="flex min-h-16 items-center gap-3 group-data-[collapsible=icon]:min-h-10" aria-label="CifraDesk, início">
-          <Image src={logo} alt="Logo Cifra" className="h-16 w-14 max-w-none shrink-0 object-contain group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-8" unoptimized />
-          <span className={`${brandFont.className} min-w-0 overflow-hidden whitespace-nowrap text-[1.75rem] leading-tight font-semibold tracking-[0.06em]`}>CifraDesk</span>
+        <Link href="/" onClick={closeMobile} className="sidebar-brand flex h-16 items-center gap-3" aria-label="CifraDesk, início">
+          <Image src={logo} alt="Logo Cifra" className="sidebar-logo h-16 w-14 max-w-none shrink-0 object-contain" unoptimized />
+          <span className={`${brandFont.className} sidebar-label min-w-0 overflow-hidden whitespace-nowrap text-[1.75rem] leading-tight font-semibold tracking-[0.06em]`}>CifraDesk</span>
         </Link>
       </SidebarHeader>
       <SidebarContent><SidebarGroup className="px-3">{menu}</SidebarGroup></SidebarContent>
@@ -62,10 +62,10 @@ export function AppSidebar({ isAdmin = false, user }: { isAdmin?: boolean; user:
         <SidebarMenu><SidebarMenuItem>
           <DropdownMenu open={accountOpen} onOpenChange={open => { setAccountOpen(open); if (open) navigating.current = false; }}>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton size="lg" tooltip="Menu da conta" aria-label={`Menu da conta: ${user.email}`} aria-describedby={accountOpen && error ? 'account-menu-error' : undefined} className="account-menu-trigger gap-3 rounded-lg transition-colors duration-200 group-data-[collapsible=icon]:p-0!">
+              <SidebarMenuButton size="lg" tooltip="Menu da conta" aria-label={`Menu da conta: ${user.email}`} aria-describedby={accountOpen && error ? 'account-menu-error' : undefined} className="account-menu-trigger gap-3 rounded-lg group-data-[collapsible=icon]:h-12! group-data-[collapsible=icon]:w-full!">
                 <Avatar className="size-8 shrink-0"><AvatarImage src={user.image ?? undefined} alt="" /><AvatarFallback>{initials(user.name)}</AvatarFallback></Avatar>
-                <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden"><span className="block truncate font-medium">{user.name}</span><span className="block truncate text-xs text-muted-foreground">{user.email}</span></span>
-                <ChevronUp aria-hidden="true" className="ml-auto size-4 shrink-0 group-data-[collapsible=icon]:hidden" />
+                <span className="sidebar-label min-w-0 flex-1 text-left"><span className="block truncate font-medium">{user.name}</span><span className="block truncate text-xs text-muted-foreground">{user.email}</span></span>
+                <ChevronUp aria-hidden="true" className="sidebar-label ml-auto size-4 shrink-0" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="end" sideOffset={8} collisionPadding={12} className="w-64 max-w-[calc(100vw-1.5rem)] rounded-xl p-2 motion-reduce:animate-none" onCloseAutoFocus={event => { if (navigating.current) event.preventDefault(); }}>

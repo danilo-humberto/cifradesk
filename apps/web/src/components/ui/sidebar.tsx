@@ -181,6 +181,8 @@ function Sidebar({
 }) {
   const { isMobile, state, openMobile, setOpenMobile, triggerRef } = useSidebar()
 
+  const [resizing, setResizing] = React.useState(false)
+
   if (collapsible === "none") {
     return (
       <div
@@ -239,8 +241,8 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
-          resizable && state === "expanded" && "transition-none",
+          "relative w-(--sidebar-width) bg-transparent transition-[width] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+          resizing && "transition-none",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -252,8 +254,8 @@ function Sidebar({
         data-slot="sidebar-container"
         inert={state === "collapsed" && collapsible === "offcanvas"}
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
-          resizable && state === "expanded" && "transition-none",
+          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:flex",
+          resizing && "transition-none",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -272,13 +274,14 @@ function Sidebar({
         >
           {children}
         </div>
-        {resizable && state === "expanded" && <SidebarResizeHandle side={side} />}
+        {resizable && state === "expanded" && <SidebarResizeHandle side={side} onResizingChange={setResizing} />}
       </div>
     </div>
   )
 }
 
-function SidebarResizeHandle({ side }: { side: "left" | "right" }) {
+function SidebarResizeHandle({ side, onResizingChange }: { side: "left" | "right"; onResizingChange: (resizing: boolean) => void }) {
+  React.useEffect(() => () => onResizingChange(false), [onResizingChange])
   const { width, setWidth } = useSidebar()
   const drag = React.useRef<{ pointerId: number; x: number; width: number } | null>(null)
   const currentWidth = width ?? 320
@@ -298,6 +301,7 @@ function SidebarResizeHandle({ side }: { side: "left" | "right" }) {
         if (event.button !== 0 || !event.isPrimary) return
         event.preventDefault()
         event.currentTarget.focus()
+        onResizingChange(true)
         event.currentTarget.setPointerCapture(event.pointerId)
         drag.current = { pointerId: event.pointerId, x: event.clientX, width: event.currentTarget.parentElement!.getBoundingClientRect().width }
       }}
@@ -308,9 +312,10 @@ function SidebarResizeHandle({ side }: { side: "left" | "right" }) {
       onPointerUp={(event) => {
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
         drag.current = null
+        onResizingChange(false)
       }}
-      onPointerCancel={() => { drag.current = null }}
-      onLostPointerCapture={() => { drag.current = null }}
+      onPointerCancel={() => { drag.current = null; onResizingChange(false) }}
+      onLostPointerCapture={() => { drag.current = null; onResizingChange(false) }}
       onKeyDown={(event) => {
         const direction = side === "left" ? 1 : -1
         const values: Record<string, number> = { ArrowLeft: currentWidth - 10 * direction, ArrowRight: currentWidth + 10 * direction, Home: SIDEBAR_MIN_WIDTH, End: SIDEBAR_MAX_WIDTH }

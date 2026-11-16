@@ -24,7 +24,27 @@ input[type="file"]:enabled::file-selector-button {
   position: relative;
   isolation: isolate;
 }
-[data-collapsible="icon"] .sidebar-sliding-menu { --nav-item-height: 2rem; }
+/* Stable rows keep the active background and icons aligned during collapse. */
+.sidebar-sliding-menu .sidebar-navigation-link {
+  width: 100% !important;
+  height: var(--nav-item-height) !important;
+  padding-inline: 7px !important;
+}
+.sidebar-brand { overflow: hidden; }
+.sidebar-logo { transform-origin: left center; }
+.sidebar-label { white-space: nowrap; }
+[data-collapsible="icon"] .sidebar-label { opacity: 0; pointer-events: none; }
+[data-collapsible="icon"] .sidebar-logo { transform: scale(.57); }
+.account-menu-trigger {
+  width: 100% !important;
+  height: 3rem !important;
+  padding: 0 !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar-logo { transition: transform 300ms cubic-bezier(.22, 1, .36, 1); }
+  .sidebar-label { transition: opacity 160ms ease; }
+  [data-state="expanded"] .sidebar-label { transition-delay: 80ms; }
+}
 .sidebar-sliding-menu::before {
   content: "";
   position: absolute;
