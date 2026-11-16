@@ -373,3 +373,22 @@ apps/web/src/components/admin-panel.module.css e apps/web/src/components/admin-p
 Todo o diff foi autorizado para commits locais e dividido entre filtros/paginação de chamados, Administração com testes E2E adaptados e documentação. Registros anteriores de sem commits indicam o estado das entregas antes desta consolidação. Nenhum push, PR, merge ou publicação no Linear foi realizado.
 
 Na preparação, `docker exec cifradesk-local-web-1 pnpm check` passou: lint global, tipos e 75 testes, com 47 integrações ignoradas. As duas árvores de código preparadas no índice passaram em `tsc --noEmit` para web e ferramentas, exportadas para diretórios isolados com dependências existentes. A primeira tentativa do verificador falhou por arquivo auxiliar ausente no container; após copiá-lo, as verificações passaram. Removidas linhas vazias excedentes no fim dos componentes Dialog e Tabs; `git diff --cached --check` passou. Build e E2E não executados; as limitações registradas nas entregas permanecem.
+
+### Sidebar redimensionável — 16/11/2026
+
+Sidebar expandida ajustável de 280 a 420 px, com largura inicial de 320 px. Arrastar a borda direita ou focar o separador e usar setas (10 px), Home (280 px) e End (420 px). O estado permanece no provider durante a navegação e ao recolher/expandir; recarregar restaura 320 px. Menu móvel e largura recolhida seguem o comportamento anterior. Sidebar e Separator shadcn existentes, sem dependências novas. Captura de ponteiro mantém o arraste fora da borda; cancelamento/perda de captura encerra o gesto. Sem transição de largura enquanto expandida para acompanhar o ponteiro imediatamente.
+
+Validação: `docker exec cifradesk-local-web-1 pnpm check` aprovado (lint global, tipos e 75 testes; 47 integrações ignoradas). Primeira execução falhou no acesso possivelmente undefined ao mapa de teclas; corrigido antes da execução final. `git diff --check` aprovado. Navegador local: Home + seta para esquerda manteve 280; End + seta para direita manteve 420; arrastes além dos dois limites respeitaram os limites; recolher/expandir preservou 420; setas retornaram a 320. Captura em `.local/sidebar-resize.png`. Houve erro transitório de JSON do Next durante recompilação; reload posterior recuperou a página. Sem TDD RED/GREEN ou novo teste automatizado: validação direta de interação no navegador para este incremento pequeno, sem infraestrutura de teste DOM instalada. Mobile, leitor de tela, build e E2E completo não executados.
+
+Minuta para o Linear — não publicada:
+
+#### O QUE E POR QUE
+A borda permite ajustar a navegação entre 280 e 420 px, com teclado e arraste. Extensão dos componentes shadcn existentes é a solução mais simples adequada, sem dependências novas.
+
+#### ALERTA DO SÊNIOR
+Sem defeito bloqueante identificado na revisão do diff local. A largura não persiste após recarregar. Validação de interação limitada ao navegador desktop; mobile e leitores de tela não exercitados.
+
+#### FOCO DE REVISÃO
+`apps/web/src/components/ui/sidebar.tsx`: limites, captura de ponteiro e teclado. `apps/web/src/components/layout/sidebar.tsx`: ativação na navegação. Branch `codex/sidebar-redimensionavel`, baseada no estado local anterior; commits de outras tarefas já existentes na base não foram alterados. Sem commit, push ou PR.
+
+Ajuste solicitado em 16/11/2026: área de arraste transparente, sem realce no hover/foco nem tooltip; cursor `ew-resize` indica o redimensionamento horizontal. Exceção explícita à regra geral de cursor-pointer, conforme pedido do usuário. Limites e teclado preservados. A remoção do indicador visual de foco também reduz a identificação do controle para quem navega por teclado.

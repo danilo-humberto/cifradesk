@@ -48,7 +48,7 @@ export function AppSidebar({ isAdmin = false, user }: { isAdmin?: boolean; user:
     closeMobile();
   }
 
-  return <Sidebar collapsible="icon">
+  return <Sidebar collapsible="icon" resizable>
     <nav aria-label="Navegação principal" className="flex h-full min-h-0 flex-col">
       <SidebarHeader className="gap-0 p-3 pb-5">
         <Link href="/" onClick={closeMobile} className="flex min-h-16 items-center gap-3 group-data-[collapsible=icon]:min-h-10" aria-label="CifraDesk, início">
