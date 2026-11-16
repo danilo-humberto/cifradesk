@@ -2,6 +2,23 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
+/* Project-wide interaction rule, above Tailwind's default cursor utilities. */
+:where(
+  a[href], button, input:not([type="hidden"]), textarea, select, summary,
+  label[for], label:has(input, textarea, select),
+  [role="button"], [role="link"], [role="checkbox"], [role="radio"],
+  [role="switch"], [role="tab"], [role="combobox"], [role="option"],
+  [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"],
+  [data-slot="select-scroll-up-button"], [data-slot="select-scroll-down-button"]
+):not(:disabled, [disabled], [aria-disabled="true"], [data-disabled],
+  [inert], [inert] *, [aria-disabled="true"] *, [data-disabled] *,
+  fieldset:disabled *, label:has(:disabled), label:has(+ :disabled), :disabled + label) {
+  @apply cursor-pointer;
+}
+input[type="file"]:enabled::file-selector-button {
+  @apply cursor-pointer;
+}
+
 .sidebar-sliding-menu {
   --nav-item-height: 2.5rem;
   position: relative;

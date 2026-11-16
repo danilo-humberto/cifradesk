@@ -8,6 +8,7 @@
 - Personalizar aparência, composição e comportamento a partir dos componentes do shadcn/ui, mantendo acessibilidade e consistência visual.
 - Manter os componentes incorporados em `apps/web/src/components/ui`, conforme a configuração de `apps/web/components.json`, e reutilizá-los nas telas.
 - Ao criar ou modificar uma interface existente, adequar os componentes envolvidos a esta regra. Para necessidades sem componente correspondente na biblioteca, compor os elementos existentes antes de criar um componente próprio.
+- Todo elemento clicável pelo usuário deve utilizar `cursor-pointer`, incluindo botões, links, itens de menu, seletores e demais controles interativos. Aplicar a regra também aos componentes shadcn/ui utilizados ou personalizados no projeto.
 
 ## 2. Branch obrigatória por implementação
 
