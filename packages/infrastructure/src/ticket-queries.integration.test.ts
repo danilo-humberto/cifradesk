@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { database } from '@cifradesk/database';
 import { getTicket, listTickets, listTicketActivities, listTicketAttachments } from './ticket-queries';
 import { listTicketOptions } from './ticket-options';
+import { setMembership } from './identity';
 
 const enabled = process.env.TICKET_QUERIES_TEST_DATABASE === '1';
 describe.skipIf(!enabled)('authorized ticket queries in PostgreSQL', () => {
@@ -133,4 +134,36 @@ describe.skipIf(!enabled)('authorized ticket queries in PostgreSQL', () => {
     for (const plan of plans) expect(plan).toHaveLength(1);
     console.info('Representative query plans:', JSON.stringify(plans));
   });
+  it('pagina volume sintético e remove atribuições em mais de dois lotes', async () => {
+    // A bounded local measurement, not a production capacity or latency SLA.
+    const owner = await db.user.create({ data: { id: randomUUID(), name: 'Volume owner', email: randomUUID() + '@example.test', status: 'ACTIVE', isAdmin: true } });
+    const assignee = await db.user.create({ data: { id: randomUUID(), name: 'Volume member', email: randomUUID() + '@example.test', status: 'ACTIVE' } });
+    const sector = await db.department.create({ data: { name: 'Volume ' + randomUUID(), memberships: { create: [{ userId: owner.id }, { userId: assignee.id }] } } });
+    const ticketIds = Array.from({ length: 2000 }, () => randomUUID());
+    for (let offset = 0; offset < ticketIds.length; offset += 250) {
+      await db.ticket.createMany({ data: ticketIds.slice(offset, offset + 250).map(id => ({ id, title: 'Volume sintético', description: 'Medição local com dados sintéticos', createdById: owner.id, requestedFor: 'SELF' as const, requesterName: owner.name, originDepartmentId: sector.id, originDepartmentName: sector.name, departmentId: sector.id, status: 'IN_PROGRESS' as const })) });
+    }
+    const assignedIds = ticketIds.slice(0, 250);
+    await db.ticketAssignee.createMany({ data: assignedIds.map(ticketId => ({ ticketId, userId: assignee.id, assignedById: owner.id })) });
+    const started = performance.now();
+    const first = await listTickets(owner, 'queue', { departmentId: sector.id, page: 1, pageSize: 20 });
+    const last = await listTickets(owner, 'queue', { departmentId: sector.id, page: 100, pageSize: 20 });
+    const filtered = await listTickets(owner, 'queue', { departmentId: sector.id, assigneeId: assignee.id, status: 'IN_PROGRESS', pageSize: 20 });
+    expect(first.total).toBe(2000); expect(last.total).toBe(2000);
+    expect(first.items).toHaveLength(20); expect(last.items).toHaveLength(20);
+    expect(new Set([...first.items, ...last.items].map(row => row.id)).size).toBe(40);
+    expect(filtered.total).toBe(250); expect(filtered.items).toHaveLength(20);
+    const queriesMs = performance.now() - started;
+    expect((await listTickets(outsider!, 'queue', { departmentId: sector.id })).total).toBe(0);
+    const removalStarted = performance.now();
+    await setMembership(owner.id, sector.id, assignee.id, false);
+    const removalMs = performance.now() - removalStarted;
+    expect(await db.ticketAssignee.count({ where: { userId: assignee.id } })).toBe(0);
+    expect(await db.ticket.count({ where: { id: { in: assignedIds }, version: 2, status: 'IN_PROGRESS' } })).toBe(250);
+    expect(await db.ticketActivity.count({ where: { ticketId: { in: assignedIds }, action: 'ticket.assignees_removed', visibility: 'INTERNAL' } })).toBe(250);
+    expect(await db.outboxEvent.count({ where: { ticketId: { in: assignedIds }, type: 'ticket.assignees_removed.v1' } })).toBe(250);
+    expect((await listTickets(assignee, 'queue', { departmentId: sector.id })).total).toBe(0);
+    expect((await getTicket(owner, assignedIds[0]!)).needsReassignment).toBe(true);
+    console.info('Bounded synthetic volume:', JSON.stringify({ tickets: 2000, assignmentsRemoved: 250, threeQueriesMs: Math.round(queriesMs), removalMs: Math.round(removalMs) }));
+  }, 60000);
 });

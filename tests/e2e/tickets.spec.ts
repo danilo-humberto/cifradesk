@@ -1,7 +1,8 @@
-import { randomUUID } from 'node:crypto';
-import { test, expect } from './fixtures';
+import { createHash, randomUUID } from 'node:crypto';
+import { test, expect, syntheticPassword } from './fixtures';
 import { database } from '../../packages/database/src';
 import { createTicket } from '../../packages/infrastructure/src/tickets';
+import { acceptInvitation } from '../../packages/infrastructure/src/identity';
 
 // These journeys include several authenticated writes on the synthetic server.
 test.setTimeout(90000);
@@ -141,4 +142,64 @@ test('jornada respeita temas e encerra sessão sem conteúdo antigo', async ({ p
   await expect(page).toHaveURL(/\/login$/);
   await page.goto('/requests');
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test('duas sessões de navegador preservam a primeira edição e exigem recarga', async ({ page, browser, identity, baseURL }) => {
+  const sector = await department(identity.id);
+  const actor = await database().user.findUniqueOrThrow({ where: { id: identity.id } });
+  const ticket = await createTicket(actor, { title: 'Duas sessões reais', description: 'Concorrência entre navegadores', requestedFor: 'SELF', originDepartmentId: sector.id, departmentId: sector.id });
+  const second = await browser.newContext({ baseURL });
+  try {
+    expect((await second.request.post('/api/auth/sign-in/email', { headers: { Origin: baseURL! }, data: { email: identity.email, password: syntheticPassword } })).status()).toBe(200);
+    const other = await second.newPage();
+    for (const editor of [page, other]) {
+      await editor.goto(`/requests/${ticket.id}`);
+      await editor.getByRole('combobox', { name: 'Novo status' }).click();
+      await editor.getByRole('option', { name: 'PENDENTE', exact: true }).click();
+    }
+    await page.getByRole('button', { name: 'Salvar alteração' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Dados atualizados.' })).toBeVisible();
+    const conflict = other.waitForResponse(response => response.url().endsWith(`/api/tickets/${ticket.id}/operations/status`) && response.status() === 409);
+    await other.getByRole('button', { name: 'Salvar alteração' }).click();
+    await conflict;
+    await expect(other.getByText('O chamado mudou. Recarregue antes de editar.', { exact: true })).toBeVisible();
+    await expect(other.getByRole('button', { name: 'Salvar alteração' })).toBeDisabled();
+    const saved = await database().ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+    expect(saved.version).toBe(2);
+    expect(saved.status).toBe('PENDING');
+    expect(await database().ticketActivity.count({ where: { ticketId: ticket.id } })).toBe(2);
+    expect(await database().outboxEvent.count({ where: { ticketId: ticket.id } })).toBe(2);
+    await other.getByRole('button', { name: 'Recarregar chamado', exact: true }).click();
+    await expect(other.getByRole('combobox', { name: 'Novo status' })).toContainText('PENDENTE');
+  } finally { await second.close(); }
+});
+
+test('terceiro é negado; vínculo permite operar; desativação revoga a sessão aberta', async ({ browser, request, identity, baseURL }) => {
+  const sector = await department(identity.id);
+  const actor = await database().user.findUniqueOrThrow({ where: { id: identity.id } });
+  const ticket = await createTicket(actor, { title: 'Revogação em navegador', description: 'Acesso reavaliado pelo servidor', requestedFor: 'SELF', originDepartmentId: sector.id, departmentId: sector.id });
+  const user = await database().user.create({ data: { id: randomUUID(), name: 'Integrante sintético', email: randomUUID() + '@example.test' } });
+  const token = randomUUID() + randomUUID();
+  await database().invitation.create({ data: { userId: user.id, tokenHash: createHash('sha256').update(token).digest('hex'), expiresAt: new Date(Date.now() + 60000) } });
+  await acceptInvitation(token, syntheticPassword);
+  const member = await browser.newContext({ baseURL });
+  try {
+    expect((await member.request.post('/api/auth/sign-in/email', { headers: { Origin: baseURL! }, data: { email: user.email, password: syntheticPassword } })).status()).toBe(200);
+    const viewer = await member.newPage();
+    await viewer.goto(`/requests/${ticket.id}`);
+    await expect(viewer.getByRole('alert').filter({ hasText: 'acesso não permitido' })).toBeVisible();
+    await expect(viewer.getByRole('heading', { name: /Revogação em navegador/ })).toHaveCount(0);
+    expect((await request.post(`/api/admin/departments/${sector.id}/members`, { headers: { Origin: baseURL! }, data: { userId: user.id } })).status()).toBe(200);
+    await viewer.reload();
+    await viewer.getByRole('combobox', { name: 'Novo status' }).click();
+    await viewer.getByRole('option', { name: 'PENDENTE', exact: true }).click();
+    await viewer.getByRole('button', { name: 'Salvar alteração' }).click();
+    await expect(viewer.getByRole('status').filter({ hasText: 'Dados atualizados.' })).toBeVisible();
+    expect((await request.patch(`/api/admin/users/${user.id}`, { headers: { Origin: baseURL! }, data: { status: 'DISABLED' } })).status()).toBe(200);
+    expect((await member.request.get(`/api/tickets/${ticket.id}`)).status()).toBe(401);
+    expect((await member.request.post(`/api/tickets/${ticket.id}/operations/status`, { headers: { Origin: baseURL! }, data: { expectedVersion: 2, status: 'OPEN' } })).status()).toBe(401);
+    await viewer.reload();
+    await expect(viewer).toHaveURL(/\/login$/);
+    expect((await database().ticket.findUniqueOrThrow({ where: { id: ticket.id } })).version).toBe(2);
+  } finally { await member.close(); }
 });

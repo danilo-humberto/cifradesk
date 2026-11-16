@@ -40,7 +40,8 @@ try {
   // Record traces on Linux; copying finished artifacts avoids per-event bind-mount IO.
   const output='/tmp/ticket-ui-results-'+process.pid;
   const report='/tmp/ticket-ui-report-'+process.pid;
-  const tests=spawn('pnpm',['exec','playwright','test','tests/e2e/tickets.spec.ts','--workers=1','--output',output],{env:{...env,PLAYWRIGHT_HTML_OUTPUT_DIR:report},stdio:'inherit'});
+  const selection=env.TICKET_UI_ALL==='1'?[]:['tests/e2e/tickets.spec.ts'];
+  const tests=spawn('pnpm',['exec','playwright','test',...selection,'--workers=1','--output',output],{env:{...env,PLAYWRIGHT_HTML_OUTPUT_DIR:report},stdio:'inherit'});
   process.exitCode=await new Promise(resolve=>tests.on('exit',code=>resolve(code??1)));
   if(existsSync(output)) cpSync(output,'/workspace/.local/ticket-ui-results-'+process.pid,{recursive:true});
   if(existsSync(report)) cpSync(report,'/workspace/.local/ticket-ui-report-'+process.pid,{recursive:true});
@@ -48,6 +49,6 @@ try {
 `;
 console.log(`Synthetic database: ${name}`);
 const result = spawnSync('docker', ['exec', '-i', 'cifradesk-etapa34-tools', 'node', '--input-type=module', '-e', runner], {
-  input: JSON.stringify({ DATABASE_URL: `postgresql://${name}:${password}@postgres:5432/${name}`, TICKET_UI_TEST_DATABASE: '1', BETTER_AUTH_URL: 'http://127.0.0.1:3317', E2E_BASE_URL: 'http://127.0.0.1:3317', BETTER_AUTH_SECRET: randomBytes(32).toString('hex') }), stdio: ['pipe', 'inherit', 'inherit']
+  input: JSON.stringify({ DATABASE_URL: `postgresql://${name}:${password}@postgres:5432/${name}`, TICKET_UI_TEST_DATABASE: '1', TICKET_UI_ALL: process.argv.includes('--all') ? '1' : '0', SMTP_HOST: 'identity-mailpit', SMTP_PORT: '1025', SMTP_FROM: 'CifraDesk <noreply@cifradesk.local>', BETTER_AUTH_URL: 'http://127.0.0.1:3317', E2E_BASE_URL: 'http://127.0.0.1:3317', BETTER_AUTH_SECRET: randomBytes(32).toString('hex') }), stdio: ['pipe', 'inherit', 'inherit']
 });
 process.exit(result.status ?? 1);
