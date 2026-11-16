@@ -11,6 +11,60 @@ Implementação local na branch `codex/etapa-3-chamados`, em 13/11/2026. **READY
 
 Componentes Table, Textarea e Checkbox foram incorporados em `components/ui` seguindo shadcn/ui e as dependências existentes. Não houve alteração de dependências, schema ou configuração de produção. Mais de cinco arquivos são necessários para separar páginas, componentes, contratos, consultas/rotas, testes e documentação.
 
+## Ajustes da abertura e breadcrumbs — 16/11/2026
+
+Branch `codex/abertura-chamado-breadcrumbs`, criada sobre `b14dbd1` (estado local da interface revisada). A `main` local está anterior a essas implementações; antes de publicar, será necessário reconciliar a base e conferir o diff real do PR. Commits locais autorizados explicitamente pelo usuário após os ajustes. Push, PR e comentário no Linear não foram executados.
+
+- Breadcrumb shadcn com ancestrais clicáveis e página atual não clicável, também no celular. Abertura: `Espaço de trabalho > Minhas solicitações > Abrir chamado`; detalhe: `Espaço de trabalho > Minhas solicitações > Detalhe do chamado`. As demais rotas do workspace exibem a raiz e o título da tela. A trilha representa a hierarquia das rotas, sem acumular histórico de visitas.
+- Formulário centralizado, retorno redundante removido, inputs e seletores com 48 px, textarea com altura mínima maior, campos obrigatórios marcados por asterisco vermelho claro e contadores internos. Limites e validação nativa permanecem; instruções mínimas estão associadas aos campos para leitores de tela. Atendimento usa dois Buttons shadcn lado a lado com estado `aria-pressed`. Envio: “Abrir Chamado”.
+- Anexos em área tracejada com resumo dos limites, seleção por botão/teclado e arrastar arquivos, lista e remoção antes do envio. `Attachment` e `Progress` incorporados do registro oficial shadcn new-york-v4 (MIT), adaptando imports e tamanho do Button existente; sem dependências novas. Arquivos selecionados são validados pelo contrato existente e seleções repetidas são deduplicadas por nome, tamanho e última modificação.
+- Upload permanece em um único multipart após criar o chamado. `XMLHttpRequest.upload` informa percentual real do lote, sem estimar progresso individual. 100% significa transferência concluída; só a resposta HTTP bem-sucedida confirma o envio. Falhas HTTP/rede/timeout/aborto não causam repetição automática; o chamado criado é preservado e o usuário deve conferir o detalhe antes de reenviar. Tempo de espera do upload: 120 segundos.
+
+### Verificações desta alteração
+
+Por solicitação explícita, título, descrição e nome de outra pessoa usam cursor de texto (`cursor-text!`), como exceção local à regra global de cursor-pointer. A prioridade é necessária porque a regra global está fora das camadas Tailwind. Nome próprio e departamento único mantêm cursor de bloqueado; seletores, anexos e botões mantêm seus cursores existentes.
+
+O nome segue o mesmo comportamento: em “É para mim”, mostra o nome da conta em Input desabilitado, com cursor `not-allowed` no contêiner e rótulo. Em “Para outra pessoa”, permanece editável e obrigatório. A criação para si continua obtendo o nome no servidor; não depende de enviar o campo desabilitado. Asserções E2E de bloqueio e edição adicionadas, ainda sem execução integrada.
+
+Complemento solicitado: com um único departamento, o Input de origem fica `disabled`, com aparência de bloqueado e fora da navegação por Tab. O contêiner e o rótulo usam cursor de bloqueado (not-allowed); o cursor fica no contêiner porque o Input desabilitado ignora eventos de ponteiro. O ID continua obtido da consulta para criar o chamado. Com vários departamentos, permanece o dropdown shadcn existente. Asserções E2E atualizadas para os estados desabilitado/habilitado; execução integrada continua pendente conforme descrito abaixo.
+
+- TDD: `docker exec cifradesk-local-web-1 pnpm exec vitest run apps/web/src/lib/tickets.test.ts` inicialmente registrou **6 falhas esperadas**, pela ausência de `uploadTicketFiles`, e 5 testes existentes aprovados. Após implementação: 11 aprovados no mesmo arquivo.
+- `docker exec cifradesk-local-web-1 pnpm check`: lint e tipos aprovados; **86 testes aprovados, 47 integrações puladas**. Lint dos nove arquivos TypeScript/TSX alterados repetido após os últimos ajustes: aprovado. `git diff --check`: aprovado após remover linhas extras no fim dos arquivos.
+- Navegador local: conferidos desktop e viewport de 390 × 844, sem overflow horizontal; inputs medidos em 48 px. Verificados contadores (20/150 e 45/10.000), alternância de destinatário, retorno via breadcrumb e reabertura, seleção e remoção de TXT sintético e Tab até “Abrir Chamado”. Arquivo de prova local: `.local/abertura-chamado-final.jpg`. Nenhum chamado foi criado nem arquivo transmitido nessa verificação.
+- A prévia teve erro de acesso/timeout inicial, mas carregou na mesma aba e permitiu os ensaios acima. Não foi necessário mudar infraestrutura.
+- E2E existente atualizado para botões, breadcrumb, contadores, remoção e falha de upload, **não executado nesta rodada**: o container `cifradesk-etapa34-tools` exigido pelo runner não está disponível. Build, upload real ao armazenamento, Safari/Firefox e leitor de tela também não foram executados. Não declarar a jornada de criação/upload integralmente validada com base apenas nos testes de transporte simulados.
+- Revisão do diff da tarefa e checklist React: sem defeito impeditivo identificado na análise realizada. Os riscos abaixo permanecem; essa revisão não substitui a auditoria do histórico contra `main` antes de um PR.
+
+### Validação manual
+
+1. Abrir `/requests/new`, verificar a trilha e retornar por “Minhas solicitações”; reabrir o formulário e repetir em largura de celular.
+2. Preencher título/descrição, conferir os contadores e alternar o destinatário; conferir limites e obrigatoriedade.
+3. Selecionar/arrastar TXT sintéticos, remover e selecionar novamente; verificar a mensagem ao exceder cinco arquivos ou usar formato não permitido.
+4. Em ambiente sintético isolado, criar com anexo sob rede lenta, observar percentual do lote e confirmação. Simular falha do upload e conferir que existe somente um chamado antes de reenviar no detalhe. Esta etapa ainda está pendente de execução integrada.
+
+### Minuta para Linear — não publicada (ajustes de abertura)
+
+#### O QUE E POR QUE
+
+Formulário centralizado com controles shadcn, contadores internos, dois botões de destinatário e breadcrumbs navegáveis. Anexos usam Attachment e progresso real do lote, preservando as APIs e a recuperação sem duplicar chamados. A composição usa as dependências existentes.
+
+#### ALERTA DO SÊNIOR
+
+- Progresso mede transferência do lote; 100% não confirma persistência. Em timeout (120 s), conferir o detalhe antes de reenviar.
+- E2E de criação/recuperação e upload real permanecem pendentes; navegação e interações locais foram conferidas.
+- A base local contém trabalhos anteriores à tarefa; reconciliar com a `main` remota antes de publicar o PR.
+
+#### FOCO DE REVISÃO
+
+`apps/web/src/components/tickets/opening.tsx` (criação e preservação do chamado) e `apps/web/src/lib/tickets.ts` (transporte e confirmação do upload).
+
+### Commits locais autorizados — ajustes da abertura
+
+1. `e59ac3e feat(ui): ajusta abertura de chamados e navegação`: componentes, helper e testes correspondentes. Arquivos críticos: `opening.tsx` e `lib/tickets.ts`. Componentes visuais do registro shadcn podem ficar para uma segunda leitura; os testes permanecem junto da implementação para manter o commit coerente.
+2. `docs(ui): registra ajustes e validações da abertura`: comportamento, evidências, riscos e validação pendente; remove também linhas vazias excedentes no fim dos componentes Attachment e Progress. O hash deste commit documental deve ser consultado no histórico, pois não pode constar no próprio conteúdo.
+
+Antes dos commits locais, o typecheck web foi executado novamente com sucesso. A checagem dos arquivos preparados identificou apenas linhas vazias excedentes no fim dos dois componentes novos, removidas no commit documental. E2E e build permanecem pendentes como registrado acima.
+
 ## Complementos de API
 
 O usuário autorizou especificamente as consultas restritas de apoio à interface nesta conversa.
