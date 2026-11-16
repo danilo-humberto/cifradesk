@@ -1,6 +1,6 @@
 'use client';
 import { PaginationFooter } from '@/components/pagination-footer';
-import { useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PublicUser, PublicDepartment } from '@cifradesk/contracts/identity';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmButton } from '@/components/confirm-button';
 import { feedback } from '@/lib/feedback';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
+import { loadPeople, toggleVisible, addSelected } from '@/lib/member-selection';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -53,33 +55,90 @@ function DepartmentRow({ department, mutate, busy, onMembers }: { department: Pu
   const [name, setName] = useState(department.name);
   return <Card className="min-w-0 gap-6 p-5 sm:p-6">
     <div className="flex flex-wrap items-center gap-3"><div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted"><Building2 aria-hidden="true" className="size-6" /></div><div className="min-w-0 flex-1 basis-[calc(100%-4rem)] sm:basis-0"><h2 className="break-words text-lg font-semibold">{department.name}</h2><p className="text-sm text-muted-foreground">Dados e integrantes do setor</p></div><Badge variant="secondary" className={styles.statusBadge} data-status={department.active ? 'ACTIVE' : 'DISABLED'}>{department.active ? 'Ativo' : 'Desativado'}</Badge></div>
-    <form method="post" className="space-y-4" onSubmit={e => { e.preventDefault(); void mutate('departments/' + department.id, 'PATCH', { name, active: department.active }); }}>
-      <div className="space-y-2"><Label htmlFor={department.id}>Nome do setor</Label><Input id={department.id} required maxLength={120} value={name} onChange={e => setName(e.target.value)} disabled={busy} /></div><Button disabled={busy}>Salvar setor</Button>
+    <form id={'department-form-' + department.id} method="post" className="space-y-4" onSubmit={e => { e.preventDefault(); void mutate('departments/' + department.id, 'PATCH', { name, active: department.active }); }}>
+      <div className="space-y-2"><Label htmlFor={department.id}>Nome do setor</Label><Input id={department.id} required maxLength={120} value={name} onChange={e => setName(e.target.value)} disabled={busy} /></div>
     </form>
-    <div className="flex flex-wrap items-center gap-3 border-t pt-5"><Button variant="outline" onClick={onMembers}>Integrantes</Button>
-      <ConfirmButton disabled={busy} label={department.active ? 'Desativar setor' : 'Reativar setor'} description="Um setor desativado não concede acesso aos seus integrantes. Os vínculos são preservados." onConfirm={() => { void mutate('departments/' + department.id, 'PATCH', { name: department.name, active: !department.active }); }} />
+    <div className="flex flex-wrap items-center gap-3"><Button type="submit" form={'department-form-' + department.id} disabled={busy}>Salvar setor</Button>
+      <div className="ml-auto flex flex-wrap gap-2"><Button type="button" variant="outline" className="border-primary/25 bg-primary/15 text-foreground hover:bg-primary/25" disabled={busy} onClick={onMembers}><Users aria-hidden="true" />Integrantes</Button>
+        <span className={styles.departmentStatusAction} data-active={department.active}><ConfirmButton disabled={busy} label={department.active ? 'Desativar setor' : 'Reativar setor'} description="Um setor desativado não concede acesso aos seus integrantes. Os vínculos são preservados." onConfirm={() => { void mutate('departments/' + department.id, 'PATCH', { name: department.name, active: !department.active }); }} /></span>
+      </div>
     </div>
   </Card>;
 }
 function Members({ department, mutate, busy }: { department: PublicDepartment; mutate: (path: string, method: string, data?: unknown) => Promise<boolean>; busy: boolean }) {
   const [page, setPage] = useState(1);
-  const [peoplePage, setPeoplePage] = useState(1);
-  const [userId, setUserId] = useState('');
   const members = useQuery({ queryKey: ['admin', 'members', department.id, page], queryFn: () => api<Result<PublicUser>>('departments/' + department.id + '/members?page=' + page) });
-  const people = useQuery({ queryKey: ['admin', 'users', peoplePage], queryFn: () => api<Result<PublicUser>>('users?page=' + peoplePage) });
-  return <Card className="space-y-4 p-5"><h2 className="font-semibold">Integrantes de {department.name}</h2>
-    <form method="post" className="space-y-3" onSubmit={e => { e.preventDefault(); if (userId) void mutate('departments/' + department.id + '/members', 'POST', { userId }); }}>
-      <Label htmlFor="member-user">Pessoa ativa</Label><Select value={userId} onValueChange={setUserId}><SelectTrigger id="member-user" className="w-full"><SelectValue placeholder="Escolha uma pessoa" /></SelectTrigger>
-        <SelectContent>{people.data?.items.filter(u => u.status === 'ACTIVE').map(u => <SelectItem key={u.id} value={u.id}>{u.name} · {u.email}</SelectItem>)}</SelectContent></Select>
-      {people.data && <PaginationFooter label="Paginação de pessoas disponíveis" busy={people.isFetching} page={peoplePage} total={people.data.total} onChange={p => { setPeoplePage(p); setUserId(''); }} />}
-      <Button disabled={busy || !userId || !department.active}>Adicionar integrante</Button>
-    </form>
-    {(members.isPending || people.isPending) && <p role="status">Carregando pessoas…</p>}
-    {(members.error || people.error) && <p role="alert">{(members.error || people.error)?.message}</p>}
+  return <Card className="space-y-4 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">Integrantes de {department.name}</h2><MemberPicker department={department} busy={busy} /></div>
+    {members.isPending && <p role="status">Carregando pessoas…</p>}
+    {members.error && <p role="alert">{members.error.message}</p>}
     {members.data?.items.length === 0 && <p>Nenhum integrante neste setor.</p>}
     {members.data?.items.map(user => <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 border-t pt-3"><span className="break-all">{user.name} · {user.email}</span><ConfirmButton label="Remover vínculo" description={'Remover ' + user.name + ' deste setor?'} disabled={busy} onConfirm={() => { void mutate('departments/' + department.id + '/members/' + user.id, 'DELETE', {}); }} /></div>)}
     {members.data && <PaginationFooter label="Paginação dos integrantes" busy={members.isFetching} page={page} total={members.data.total} onChange={setPage} />}
   </Card>;
+}
+
+function MemberPicker({ department, busy }: { department: PublicDepartment; busy: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const savingRef = useRef(false);
+  const query = useQueryClient();
+  const directory = useQuery({
+    queryKey: ['admin', 'member-picker', department.id], enabled: open,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const [people, members] = await Promise.all([
+        loadPeople(page => api<Result<PublicUser>>('users?page=' + page)),
+        loadPeople(page => api<Result<PublicUser>>('departments/' + department.id + '/members?page=' + page))
+      ]);
+      return { people, memberIds: members.map(user => user.id) };
+    }
+  });
+  const memberIds = new Set(directory.data?.memberIds);
+  const term = search.trim().toLocaleLowerCase('pt-BR');
+  const people = directory.data?.people ?? [];
+  const visible = people.filter(user => (user.name + ' ' + user.email).toLocaleLowerCase('pt-BR').includes(term));
+  const eligible = new Set(people.filter(user => user.status === 'ACTIVE' && !memberIds.has(user.id)).map(user => user.id));
+  const visibleIds = visible.filter(user => eligible.has(user.id)).map(user => user.id);
+  const selectedIds = selected.filter(id => eligible.has(id));
+  const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.includes(id));
+  const locked = busy || saving || directory.isFetching || !!directory.error;
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (savingRef.current || locked || !department.active || !selectedIds.length) return;
+    savingRef.current = true; setSaving(true); setError('');
+    try {
+      const result = await addSelected(selectedIds, userId => api('departments/' + department.id + '/members', 'POST', { userId }));
+      setSelected(result.remaining);
+      if (result.error) setError(`${result.added.length} integrante(s) adicionado(s). ${result.error} As seleções restantes foram preservadas.`);
+      if (result.added.length) feedback.success(`${result.added.length} integrante(s) adicionado(s).`);
+      await query.invalidateQueries({ queryKey: ['admin'] });
+      if (!result.error) setOpen(false);
+    } finally { savingRef.current = false; setSaving(false); }
+  }
+  return <Sheet open={open} onOpenChange={value => { if (!savingRef.current) { setOpen(value); if (value) { setSearch(''); setSelected([]); setError(''); } } }}>
+    <SheetTrigger asChild><Button type="button" disabled={busy || !department.active}><UserPlus aria-hidden="true" />Adicionar integrantes</Button></SheetTrigger>
+    <SheetContent aria-labelledby="member-picker-title" className="w-full gap-0 sm:max-w-lg motion-reduce:animate-none" showCloseButton={!saving} onEscapeKeyDown={event => { if (savingRef.current) event.preventDefault(); }} onInteractOutside={event => { if (savingRef.current) event.preventDefault(); }}>
+      <SheetHeader className="border-b p-6 pr-12"><SheetTitle id="member-picker-title">Adicionar integrantes</SheetTitle><SheetDescription>Selecione as pessoas para {department.name}. Contas inativas e integrantes atuais não podem ser selecionados.</SheetDescription></SheetHeader>
+      <form method="post" aria-labelledby="member-picker-title" onSubmit={event => void submit(event)} className="flex min-h-0 flex-1 flex-col">
+        <search className="space-y-2 px-6 pt-5"><Label htmlFor="member-search">Buscar usuários</Label><Input id="member-search" className="h-11" name="search" type="search" placeholder="Nome ou e-mail" autoComplete="off" autoCapitalize="none" spellCheck={false} value={search} disabled={saving} onChange={event => setSearch(event.target.value)} /></search>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4"><span role="status" className="text-sm text-muted-foreground">{selectedIds.length} selecionado(s)</span><Button type="button" variant="outline" disabled={locked || !visibleIds.length} onClick={() => setSelected(current => toggleVisible(current, visibleIds))}>{allSelected ? 'Desmarcar todos' : 'Marcar todos'}</Button><p className="w-full text-xs text-muted-foreground">A seleção em grupo considera os resultados desta busca.</p></div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4" aria-busy={directory.isFetching}>
+          {directory.isFetching ? <p role="status" className="flex items-center gap-2 py-6"><Spinner aria-hidden="true" />Carregando usuários…</p> : directory.error ? <div className="space-y-3"><p role="alert">{directory.error.message}</p><Button type="button" variant="outline" onClick={() => void directory.refetch()}>Tentar novamente</Button></div> : <fieldset disabled={saving || busy}><legend className="sr-only">Usuários disponíveis</legend><div className="space-y-2">{visible.map(user => {
+            const member = memberIds.has(user.id);
+            const disabled = !eligible.has(user.id);
+            return <div key={user.id} className="flex min-h-16 items-center gap-3 rounded-lg border px-3 has-[[data-state=checked]]:border-primary/40 has-[[data-state=checked]]:bg-primary/10">
+              <Checkbox className={styles.memberCheckbox} id={'member-' + user.id} name="members" value={user.id} checked={member || selectedIds.includes(user.id)} disabled={disabled || saving || busy} onCheckedChange={checked => setSelected(current => checked === true ? [...new Set([...current, user.id])] : current.filter(id => id !== user.id))} />
+              <Label htmlFor={'member-' + user.id} className="min-w-0 flex-1 flex-col items-start gap-1 py-3"><span className="break-words">{user.name}</span><span className="break-all text-xs font-normal text-muted-foreground">{user.email}</span><span className="text-xs text-muted-foreground">{member ? 'Já integra o setor' : userStatus[user.status]}</span></Label>
+            </div>;
+          })}{!visible.length && <p className="py-6 text-sm text-muted-foreground">Nenhum usuário encontrado.</p>}</div></fieldset>}
+        </div>
+        <div className="space-y-3 border-t bg-background p-6">{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>Cancelar</Button><Button type="submit" disabled={locked || !selectedIds.length || !department.active}>{saving && <Spinner aria-hidden="true" />}{saving ? 'Adicionando…' : `Adicionar selecionados (${selectedIds.length})`}</Button></div></div>
+      </form>
+    </SheetContent>
+  </Sheet>;
 }
 export function AdminPanel() {
   const mounted = useSyncExternalStore(subscribe, () => true, () => false);
