@@ -87,6 +87,32 @@ Playwright cobre Chromium desktop e celular emulado, não Safari/Firefox. Relat�
 
 Dependências ficam em volumes Linux, evitando milhares de arquivos no compartilhamento Windows. Não executar binários dessas dependências com Node Windows. Mudanças em manifests, pacotes ou worker exigem rebuild; o override de desenvolvimento monta somente o código web.
 
+### Recargas contínuas no desenvolvimento
+
+O script `dev` do web usa `next dev --webpack`, opção oficial da [CLI do Next.js](https://nextjs.org/docs/app/api-reference/cli/next#next-dev-options). O build de produção continua com `next build`; nenhuma versão de dependência foi alterada por esta correção. `WATCHPACK_POLLING=true` no override local permite ao Webpack detectar edições no bind mount Windows.
+
+Em 16/11/2026, o estado acumulado do Turbopack 16.4.6 enviava `restart` para um chunk de entrada e `reloadPage` com `HMR hash mismatch` a cada reconexão. O ciclo foi reproduzido em `/login`, sem autenticação, pelo proxy e diretamente no web usando uma origem permitida. Não houve eventos de alteração em `src` durante a observação. Um container Turbopack limpo não reproduziu o ciclo; portanto, a evidência aponta para inconsistência do estado/cache de HMR, sem identificar o gatilho interno que a criou. Reiniciar o mesmo container não corrigiu o problema. Webpack é a medida de compatibilidade adotada para não reutilizar esse caminho no desenvolvimento; pode ter compilação inicial mais lenta.
+
+Para aplicar a alteração também à imagem existente, recriar somente o web, preservando serviços de dados e volumes:
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml up -d --no-deps --build --wait web
+```
+
+O smoke abaixo é uma exceção segura à restrição de E2E no banco de trabalho: usa contexto novo, abre somente `/login`, preenche um e-mail sintético sem enviar o formulário e não utiliza fixtures de identidade nem grava dados. Exige HMR conectado, uma única navegação e preservação do campo por 15 segundos. A flag impede sua execução em testes contra o build de produção.
+
+```powershell
+docker compose exec -e E2E_DEV_SERVER=1 tools pnpm exec playwright test tests/e2e/dev-hmr.spec.ts --workers=1
+```
+
+Evidência RED: o teste encontrou 132 mensagens `HMR hash mismatch` em 15 segundos, com trace em `.local/hmr-red`. GREEN: dois cenários Chromium (desktop/celular) passaram em 35 s, com HMR conectado, uma requisição de documento e campo preservado, conforme `.local/hmr-green-final`. O contador diferencia recarga de documento da atualização de histórico feita na hidratação do Next.js. Uma edição temporária de CSS foi aplicada via Fast Refresh com uma única requisição de documento e sem perder o campo; o conteúdo original foi restaurado. Após reiniciar o mesmo serviço e reutilizar seu cache, os dois cenários passaram novamente (46 s), conforme `.local/hmr-after-restart`. `docker exec cifradesk-local-web-1 pnpm check` aprovou lint, tipos e 75 unitários; 47 integrações foram ignoradas. A rota `/requests` compilou e retornou o redirecionamento 307 esperado para requisição sem sessão. A imagem de desenvolvimento foi reconstruída e o serviço local está executando Webpack. Build de produção, suíte E2E completa e navegadores além de Chromium não foram repetidos nesta correção de tooling.
+
+Minuta de entrega, não publicada:
+
+- **O QUE E POR QUE:** o comando de desenvolvimento seleciona explicitamente o Webpack já fornecido pelo Next.js, evitando o ciclo de HMR observado sem alterar o build de produção.
+- **ALERTA DO SÊNIOR:** a causa interna da inconsistência do Turbopack não foi determinada; trata-se de uma medida de compatibilidade, com possível aumento do tempo de compilação inicial. Smokes em repouso, edição real e reinício passaram; a compilação de produção não foi repetida porque seu comando e código não mudaram neste incremento.
+- **FOCO DE REVISÃO:** `apps/web/package.json` define o bundler de desenvolvimento; `tests/e2e/dev-hmr.spec.ts` detecta recargas involuntárias sem mascará-las com HMR desativado.
+
 Falha de envio administrativo preserva conta e orienta Reenviar convite. Recuperação pública sempre apresenta resposta genérica; `identity.reset_delivery_failed` no log indica falha SMTP sem expor destinatário/token. Verifique saúde do Mailpit. Não há fila de reenvio automático.
 
 ```powershell
