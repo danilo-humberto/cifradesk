@@ -1,4 +1,5 @@
 'use client';
+import { PaginationFooter } from '@/components/pagination-footer';
 import Link from 'next/link';
 import { useState } from 'react';
 import { RefreshCw, Table2, List, LayoutGrid, Inbox, SlidersHorizontal } from 'lucide-react';
@@ -11,7 +12,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Choice, DepartmentChoice, Pages, QueryError } from './shared';
+import { Choice, DepartmentChoice, QueryError } from './shared';
 import { statusLabels, ticketApi, ticketKeys } from '@/lib/tickets';
 
 export function TicketList({ userId, scope }: { userId: string; scope: 'mine' | 'queue' }) {
@@ -37,16 +38,16 @@ export function TicketList({ userId, scope }: { userId: string; scope: 'mine' | 
         <Button asChild><Link href="/requests/new">Abrir chamado</Link></Button>
       </div>
     </div>
-    <search aria-label="Filtros dos chamados" className="flex min-w-0 flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:flex-row sm:items-end [&>div]:min-w-0 [&>div]:flex-1 [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-trigger]]:bg-background">
-      <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground sm:h-9"><SlidersHorizontal className="size-4" aria-hidden="true" />Filtros</span>
+    <search aria-label="Filtros dos chamados" className="grid min-w-0 grid-cols-1 gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2 [&>div]:min-w-0 [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-trigger]]:bg-background">
+      <span className="col-span-full flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground"><SlidersHorizontal className="size-4" aria-hidden="true" />Filtros</span>
       <Choice id="status-filter" label="Filtrar por status" value={status} onChange={value => { setStatus(value); setPage(1); }} options={[{ id: 'default', name: 'Todos, exceto FECHADA' }, ...Object.entries(statusLabels).map(([id, name]) => ({ id, name }))]} />
       <DepartmentChoice userId={userId} scope={scope === 'mine' ? 'destinations' : 'memberships'} id="department-filter" label="Filtrar por setor" value={departmentId} onChange={value => { setDepartment(value); setPage(1); }} />
-      {departmentId && <Button variant="outline" onClick={() => { setDepartment(''); setPage(1); }}>Limpar setor</Button>}
+      {departmentId && <Button className="col-span-full justify-self-end" variant="outline" onClick={() => { setDepartment(''); setPage(1); }}>Limpar setor</Button>}
     </search>
     {query.isPending && <Empty className="min-h-72" role="status"><Spinner className="size-8 text-primary" aria-hidden="true" /><p className="text-sm text-muted-foreground">Carregando chamados…</p></Empty>}
     {query.error ? <QueryError error={query.error} reload={() => void query.refetch()} /> : query.data && <>
       {query.data.items.length === 0 ? <Empty className="min-h-72"><EmptyHeader><EmptyMedia variant="icon" className="size-14 rounded-2xl"><Inbox aria-hidden="true" className="size-7 text-muted-foreground" /></EmptyMedia><EmptyTitle>Nenhum chamado encontrado para estes filtros.</EmptyTitle><EmptyDescription>Altere os filtros ou abra um chamado para começar.</EmptyDescription></EmptyHeader></Empty> : <TicketViews items={query.data.items} view={view} />}
-      <Pages page={page} total={query.data.total} busy={query.isFetching} onChange={setPage} modern />
+      <PaginationFooter label="Paginação dos chamados" page={page} total={query.data.total} busy={query.isFetching} onChange={setPage} />
     </>}
   </div>;
 }

@@ -1,4 +1,5 @@
 'use client';
+import { PaginationFooter } from '@/components/pagination-footer';
 import { useState, type FormEvent } from 'react';
 import { feedback } from '@/lib/feedback';
 import { useQuery } from '@tanstack/react-query';
@@ -9,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Choice, DepartmentChoice, Pages, QueryError } from './shared';
+import { Choice, DepartmentChoice, QueryError } from './shared';
 import { postTicket, ticketApi, TicketApiError, statusLabels, priorityLabels, type OptionPage } from '@/lib/tickets';
 
 export function TicketOperations({ userId, ticket, refresh }: { userId: string; ticket: TicketResponse; refresh: () => Promise<void> }) {
@@ -67,7 +68,7 @@ export function TicketOperations({ userId, ticket, refresh }: { userId: string; 
           {status === 'DONE' && <div className="space-y-2"><Label htmlFor="solution">Resumo da solução (compartilhado, obrigatório)</Label><Textarea id="solution" name="solution" required maxLength={10000} /></div>}
         </>}
         {operation === 'update' && <><div className="space-y-2"><Label htmlFor="edit-title">Título</Label><Input id="edit-title" name="title" defaultValue={baseline.title} required minLength={5} maxLength={150} /></div><div className="space-y-2"><Label htmlFor="edit-description">Descrição</Label><Textarea id="edit-description" name="description" defaultValue={baseline.description} required minLength={10} maxLength={10000} /></div><Choice id="priority" label="Prioridade" value={priority} onChange={value => setPriority(value as TicketPriority)} options={Object.entries(priorityLabels).map(([id, name]) => ({ id, name }))} /><div className="space-y-2"><Label htmlFor="dueDate">Vencimento (opcional, America/Sao_Paulo)</Label><Input id="dueDate" name="dueDate" type="date" defaultValue={baseline.dueDate ?? ''} /><p className="text-sm text-muted-foreground">Ao alterar, escolha hoje ou uma data futura. Deixe vazio para remover o prazo.</p></div></>}
-        {operation === 'assign' && <fieldset className="space-y-3"><legend>Responsáveis ativos do setor</legend>{members.data?.items.map(person => <div key={person.id} className="flex items-center gap-3"><Checkbox id={'assignee-' + person.id} checked={assigned.includes(person.id)} onCheckedChange={checked => setAssigned(ids => checked === true ? [...new Set([...ids, person.id])] : ids.filter(id => id !== person.id))} /><Label className="min-h-10 flex-1 py-2" htmlFor={'assignee-' + person.id}>{person.name}</Label></div>)}<p>{assigned.length} selecionado(s), incluindo outras páginas.</p>{members.data && <Pages page={memberPage} total={members.data.total} busy={members.isFetching} onChange={setMemberPage} />}</fieldset>}
+        {operation === 'assign' && <fieldset className="space-y-3"><legend>Responsáveis ativos do setor</legend>{members.data?.items.map(person => <div key={person.id} className="flex items-center gap-3"><Checkbox id={'assignee-' + person.id} checked={assigned.includes(person.id)} onCheckedChange={checked => setAssigned(ids => checked === true ? [...new Set([...ids, person.id])] : ids.filter(id => id !== person.id))} /><Label className="min-h-10 flex-1 py-2" htmlFor={'assignee-' + person.id}>{person.name}</Label></div>)}<p>{assigned.length} selecionado(s), incluindo outras páginas.</p>{members.data && <PaginationFooter label="Paginação dos responsáveis" page={memberPage} total={members.data.total} busy={members.isFetching} onChange={setMemberPage} />}</fieldset>}
         {operation === 'transfer' && <DepartmentChoice userId={userId} scope="destinations" id="transfer-department" label="Novo setor (obrigatório)" value={departmentId} onChange={setDepartment} exclude={baseline.department.id} />}
         {needsReason && <div className="space-y-2"><Label htmlFor="reason">Motivo (interno, obrigatório)</Label><Textarea id="reason" name="reason" required maxLength={10000} /></div>}
         <Button type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar alteração'}</Button>
