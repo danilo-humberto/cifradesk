@@ -277,3 +277,99 @@ components/ui/dropdown-menu.tsx: identificação da entrada e composição dos e
 Todo o diff pendente foi autorizado para commits locais e organizado em sidebar/menu da conta, cursor dos controles, foco no hover e documentação. As menções anteriores a “sem commits” representam o estado de cada entrega antes desta consolidação. Nenhum push, PR, merge ou publicação no Linear foi realizado.
 
 Na preparação, docker exec cifradesk-local-web-1 pnpm check passou novamente: lint, tipos e 75 testes; 47 integrações ignoradas. As árvores preparadas antes e depois da mudança TypeScript de hover passaram em tsc --noEmit para web e ferramentas, exportadas do índice Git em diretórios isolados, reutilizando dependências e tipos gerados. O commit de cursor altera somente CSS e instruções, sem mudar o estado TypeScript. git diff --cached --check passou nos conjuntos. Build de produção e E2E não foram executados; as limitações funcionais registradas acima permanecem.
+
+### Carregamento de setores dentro do seletor — 16/11/2026
+
+DepartmentChoice informa Carregando setores… dentro do SelectTrigger, acompanhado pelo Spinner shadcn de 16 px. A opção loadingText de Choice desabilita o controle e informa aria-busy; uma região de status visualmente oculta mantém o anúncio sem acrescentar uma linha visível abaixo do campo. O conteúdo é fornecido também como placeholder do SelectValue para cobrir o estado inicial sem seleção. Spinner reutiliza a preferência de movimento reduzido existente. Refetch com dados disponíveis preserva o valor; erro, vazio e paginação mantêm seus comportamentos.
+
+Conferência em /requests durante carregamento: status e setor com altura de 36 px e top de 251,84375 px, confirmando alinhamento. Captura em .local/department-loading-inline.jpg. Lint do componente, typecheck do web e git diff --check passaram. Sem novos testes/TDD para este ajuste visual localizado; build, E2E, leitor de tela e viewport móvel não executados. O componente compartilhado aplica o mesmo carregamento aos formulários que usam DepartmentChoice.
+
+Minuta para o Linear — não publicada:
+
+#### O QUE E POR QUE
+
+Mensagem e spinner ficam dentro do seletor para evitar que o carregamento aumente a linha de filtros. Componentes shadcn existentes, sem dependências novas.
+
+#### ALERTA DO SÊNIOR
+
+Conferência visual limitada ao desktop durante carregamento; E2E e leitores de tela não executados. Sem defeito adicional identificado no incremento.
+
+#### FOCO DE REVISÃO
+
+apps/web/src/components/tickets/shared.tsx: apresentação de loadingText e sua ligação ao estado pendente da consulta de setores. Sem commits, push ou PR.
+
+### Título centralizado dos filtros — 16/11/2026
+
+O painel de filtros usa uma grade com o título e ícone centralizados acima dos campos. A partir de `sm`, status e setor dividem igualmente a largura disponível; abaixo disso, ficam empilhados. Limpar setor ocupa uma linha própria à direita para preservar a largura dos seletores. Continuação do ajuste dos filtros na mesma branch, preservando o carregamento dentro do seletor.
+
+Lint do componente e análise de tipos passaram. Sem novos testes por ser uma alteração apenas de layout; navegador e viewport móvel não conferidos nesta etapa.
+
+#### O QUE E POR QUE
+Grade de duas colunas iguais com título abrangendo ambas; é a alteração mais simples para centralizar o título e distribuir os campos.
+
+#### ALERTA DO SÊNIOR
+Sem defeito adicional identificado no diff. Validação visual no navegador pendente nesta etapa.
+
+#### FOCO DE REVISÃO
+`apps/web/src/components/tickets/list.tsx`: grade do painel e posicionamento da ação de limpar setor.
+
+### Paginação compartilhada e propostas de Administração — 16/11/2026
+
+`PaginationFooter` centraliza o rodapé shadcn alinhado à direita, com total, página atual e botões anterior/próxima. Reutilizado em chamados, opções de setores, responsáveis, anexos, histórico, usuários, setores, integrantes e pessoas disponíveis. Cada consumidor informa um nome acessível contextual; os botões usam `type="button"` para não enviar os formulários que contêm paginação. Mantidos tamanho padrão de 20, limites e callbacks existentes; administração também bloqueia navegação durante busca. Singular corrigido para 1 registro. Não há dependências novas nem mudanças em APIs ou permissões.
+
+Foram apresentadas três propostas ilustrativas, ainda não implementadas, para Administração: A, tabela compacta; B, lista e detalhes; C, cartões de pessoas. Todas usam a identidade escura/azul existente. A recomendação é A pela comparação de situação e acesso. Controles e dados dos mockups são conceituais; a implementação escolhida deverá preservar confirmações e regras de autorização existentes.
+
+Validação: ESLint dos componentes alterados, typecheck do web e 75 testes existentes passaram; 47 testes de integração foram ignorados pela configuração. Conferência visual desktop em /admin: rodapé à direita, 1 registro e ambos os botões desabilitados. Evidência local: `.local/admin-pagination-footer.jpg`. Sem novos testes/TDD para extração de apresentação com callbacks preservados. Build, E2E, navegação com múltiplas páginas e viewport móvel não executados. Revisão React: componente sem estado duplicado ou efeitos novos, imports diretos, controles shadcn e nomes acessíveis.
+
+Minuta para o Linear — não publicada:
+
+#### O QUE E POR QUE
+Um único rodapé elimina as duas versões de paginação e uniformiza todas as telas paginadas. Propostas de Administração entregues apenas para escolha visual.
+
+#### ALERTA DO SÊNIOR
+Sem defeito adicional identificado no incremento. A validação no navegador cobriu apenas desktop com uma página; casos com múltiplas páginas e leitores de tela permanecem sem execução.
+
+#### FOCO DE REVISÃO
+`apps/web/src/components/pagination-footer.tsx`: limites, acessibilidade e botões seguros dentro de formulários. `apps/web/src/components/admin-panel.tsx`: adoção nas três listas independentes. Sem commits, push ou PR nesta etapa.
+
+### Administração com lista e detalhes (opção B) — 16/11/2026
+
+Usuários e Setores agora compartilham o padrão lista à esquerda e detalhes à direita, com colunas empilhadas abaixo de lg. O primeiro resultado visível é selecionado inicialmente; seleção, página e busca controlam o item exibido. A busca por nome/e-mail (usuários) ou nome (setores) filtra somente a página carregada, explicitamente identificada na interface. Não há busca global nem carregamento de todas as páginas.
+
+Convite e criação de setor foram movidos para Dialog shadcn; abas usam Tabs shadcn. Fontes oficiais incorporadas de https://ui.shadcn.com/r/styles/new-york-v4/dialog.json e https://ui.shadcn.com/r/styles/new-york-v4/tabs.json, com imports adaptados ao projeto e texto Fechar traduzido. Reutilizam radix-ui existente, sem instalar dependências. Dados de acesso continuam somente leitura no resumo; ações sensíveis preservam ConfirmButton e endpoints existentes. Integrantes abre no painel de detalhes do setor. O rodapé compartilhado permanece ao final da área. Alterações ainda não salvas no nome são descartadas ao trocar seleção, aba, página ou filtrar o item para fora da lista.
+
+Validação: ESLint dos componentes e teste E2E editado, typecheck do web e 75 testes existentes passaram; 47 integrações foram ignoradas. Navegador: usuário selecionado, busca sem resultado e limpeza, abas, estado vazio de Setores, diálogos de convite e novo setor, foco inicial e Escape. Layout móvel de 390 px conferido sem overflow horizontal (scrollWidth 375); corrigida quebra de badges que apertava o nome. Capturas .local/admin-users-master-detail.jpg e .local/admin-users-mobile.jpg. Dados locais não têm setores cadastrados: edição de setor e integrantes não foram exercitadas no navegador. Não foram executadas mutações reais, build nem E2E; infraestrutura isolada exigida pelos fixtures não está ativa. Fluxos E2E foram adaptados aos diálogos, tabs e seleção, incluindo busca vazia e foco. Sem evidência RED/GREEN nesta etapa.
+
+Minuta para o Linear — não publicada:
+
+#### O QUE E POR QUE
+Opção B aplicada às duas abas, com lista selecionável e formulário de detalhes. Diálogos liberam o espaço antes ocupado por criação, usando shadcn e preservando a API existente.
+
+#### ALERTA DO SÊNIOR
+Busca limitada à página atual, com rótulo explícito. Trocar seleção descarta edição não salva do nome. E2E e edição de setores com dados não executados nesta etapa.
+
+#### FOCO DE REVISÃO
+`apps/web/src/components/admin-panel.tsx`: seleção, busca, diálogo e preservação das confirmações. `tests/e2e/identity.spec.ts`: adequação dos fluxos de convite e setores à nova interação. Sem commits, push ou PR.
+
+### Cores de estado e abas animadas da Administração — 16/11/2026
+
+Abas com 40 px, iguais à ação principal, e sublinhado único que desliza em 200 ms. CSS Module limita a personalização à Administração. Indicador por borda em pseudo-elemento, com anchor positioning quando disponível e fallback por transform em duas colunas iguais. Transições respeitam prefers-reduced-motion; aria-selected e teclado continuam sob controle do Tabs shadcn.
+
+Badges de usuários e setores: ativo verde, convidado âmbar, desativado cinza; administrador azul. Tons específicos para temas claro e escuro e textos preservados para não depender apenas da cor.
+
+Validação: lint do componente, typecheck web e git diff --check passaram. Navegador desktop confirmou abas e ação com 40 px, duração de 0,2 s e indicador mudando de 0 para 110,797 px ao selecionar Setores. Ativo verde e Administrador azul conferidos visualmente. Evidência: .local/admin-status-tabs.jpg. Sem novos testes por ser ajuste visual; tema claro, estados sem dados locais, movimento reduzido e fallback não exercitados no navegador.
+
+#### O QUE E POR QUE
+Cores distinguem situação e acesso; abas acompanham a altura da ação e um único sublinhado mantém continuidade na troca.
+
+#### ALERTA DO SÊNIOR
+Fallback assume as duas abas de mesma largura. Validação visual limitada ao tema escuro e aos estados disponíveis localmente; sem defeito adicional identificado no incremento.
+
+#### FOCO DE REVISÃO
+apps/web/src/components/admin-panel.module.css e apps/web/src/components/admin-panel.tsx: estilos locais, animação e mapeamento das cores. Sem commits, push ou PR.
+
+### Consolidação dos commits locais — filtros, paginação e Administração
+
+Todo o diff foi autorizado para commits locais e dividido entre filtros/paginação de chamados, Administração com testes E2E adaptados e documentação. Registros anteriores de sem commits indicam o estado das entregas antes desta consolidação. Nenhum push, PR, merge ou publicação no Linear foi realizado.
+
+Na preparação, `docker exec cifradesk-local-web-1 pnpm check` passou: lint global, tipos e 75 testes, com 47 integrações ignoradas. As duas árvores de código preparadas no índice passaram em `tsc --noEmit` para web e ferramentas, exportadas para diretórios isolados com dependências existentes. A primeira tentativa do verificador falhou por arquivo auxiliar ausente no container; após copiá-lo, as verificações passaram. Removidas linhas vazias excedentes no fim dos componentes Dialog e Tabs; `git diff --cached --check` passou. Build e E2E não executados; as limitações registradas nas entregas permanecem.
