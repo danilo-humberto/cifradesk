@@ -392,3 +392,23 @@ Sem defeito bloqueante identificado na revisão do diff local. A largura não pe
 `apps/web/src/components/ui/sidebar.tsx`: limites, captura de ponteiro e teclado. `apps/web/src/components/layout/sidebar.tsx`: ativação na navegação. Branch `codex/sidebar-redimensionavel`, baseada no estado local anterior; commits de outras tarefas já existentes na base não foram alterados. Sem commit, push ou PR.
 
 Ajuste solicitado em 16/11/2026: área de arraste transparente, sem realce no hover/foco nem tooltip; cursor `ew-resize` indica o redimensionamento horizontal. Exceção explícita à regra geral de cursor-pointer, conforme pedido do usuário. Limites e teclado preservados. A remoção do indicador visual de foco também reduz a identificação do controle para quem navega por teclado.
+
+### Transição da sidebar — 16/11/2026
+
+A abertura e o recolhimento usam 300 ms com desaceleração; a transição só é desativada durante arraste, substituindo a regra anterior que a desativava sempre expandida. Logo escala sem alterar a altura do cabeçalho; textos desaparecem por opacidade. Linhas mantêm 40 px e o fundo ativo acompanha a largura disponível, evitando saltos verticais. Rodapé mantém 48 px. Movimento respeita prefers-reduced-motion. Sem novas dependências.
+
+Validação: `docker exec cifradesk-local-web-1 pnpm check` aprovou lint, tipos e 75 testes (47 integrações ignoradas). Navegador local confirmou expandir/recolher, linhas de 40 px, transição computada de 300 ms e largura de 420 px preservada após alternar (End no separador). Sem TDD RED/GREEN para este ajuste visual; verificação direta de layout e suíte existente. Arraste, mobile, tema claro, preferência de movimento reduzido e E2E completo não foram revalidados nesta alteração.
+
+### O QUE E POR QUE
+
+Transições CSS e estado local de arraste corrigem a abertura instantânea. Alturas estáveis mantêm logo e destaque alinhados; é a solução simples adequada aos componentes shadcn existentes.
+
+### ALERTA DO SÊNIOR
+
+Animar largura recalcula layout durante 300 ms; necessário para o conteúdo acompanhar o painel. Sem medição de desempenho em dispositivos lentos. DevTools local ainda sobrepõe o avatar recolhido. Revisão do diff sem outro defeito identificado, sem garantia de ausência de falhas.
+
+### FOCO DE REVISÃO
+
+`apps/web/src/components/ui/sidebar.tsx`: transição e ciclo de arraste. `apps/web/src/app/globals.css`: dimensões, logo e opacidade. Branch `codex/sidebar-transicao-suave` criada da base local `9e075fe`, preservando os trabalhos existentes. Sem commit, push, PR ou publicação no Linear.
+
+Consolidação autorizada em 16/11/2026: ajuste de interface registrado no commit local 234a094, acompanhado de commit separado desta documentação. A menção acima a ausência de commit descreve a entrega anterior à autorização. Sem push, PR ou publicação no Linear.
