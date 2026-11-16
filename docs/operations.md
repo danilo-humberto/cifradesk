@@ -106,7 +106,7 @@ Parar preserva volumes. Não usar `down -v`, limpeza global ou remoção de volu
 5. Recuperar senha: link só funciona uma vez e sessões antigas deixam de funcionar.
 6. Tentar remover o último administrador ativo: operação rejeitada.
 7. Escolher claro/escuro/automático e conferir persistência da conta. Usar teclado e viewport de 390px.
-8. Testar Sair e Encerrar todas as sessões. Confirmar que chamados/tarefas ainda aparecem como indisponíveis.
+8. Testar Sair e Encerrar todas as sessões. Confirmar redirecionamento ao login e ausência de conteúdo autenticado após sair.
 
 ## Limites
 
@@ -134,8 +134,28 @@ Para reproduzir a integração da 3.4, usar `node scripts/test-ticket-opening.mj
 
 ## Consultas de chamados — tarefa 3.5
 
-`node scripts/test-ticket-queries.mjs` usa o mesmo container de ferramentas e PostgreSQL local. Cria banco/papel exclusivos `tickets35_test_*`, aplica migrations somente nesse banco e executa oito integrações, incluindo EXPLAIN de SQL representativo. Não acessa S3 nem lê credenciais da aplicação; gera senha sintética em memória. Preserva o banco de teste para diagnóstico. [Rotas GET, paginação, acesso e validação manual](tarefa-3.5-consultas.md). Nenhum deploy é necessário para os testes; a aplicação já em execução não é atualizada por esse runner.
+`node scripts/test-ticket-queries.mjs` usa o mesmo container de ferramentas e PostgreSQL local. Cria banco/papel exclusivos `tickets35_test_*`, aplica migrations somente nesse banco e executa 12 integrações, incluindo EXPLAIN de SQL representativo e volume sintético de 2.000 chamados com remoção de 250 atribuições. Não acessa S3 nem lê credenciais da aplicação; gera senha sintética em memória. Preserva o banco de teste para diagnóstico. [Rotas GET, paginação, acesso e validação manual](tarefa-3.5-consultas.md). Nenhum deploy é necessário para os testes; a aplicação já em execução não é atualizada por esse runner.
 
 ## Operações de chamados — tarefa 3.6
 
 `node scripts/test-ticket-operations.mjs` cria banco/papel sintéticos `tickets36_test_*` no PostgreSQL local existente, aplica somente as migrations já existentes nesse banco e executa oito integrações. Usa `cifradesk-etapa34-tools`, sem credenciais da aplicação ou S3, e preserva a base para diagnóstico. Não atualiza a aplicação em execução. [API, eventos, controle de versão, testes e limites](tarefa-3.6-operacoes.md). Remoções administrativas podem atingir o timeout transacional de 15 segundos em volume: nesse caso ocorre rollback integral; medir carga antes de ampliar uso.
+
+## Regressão completa — tarefa 3.8
+
+Pré-requisitos: Docker iniciado; `cifradesk-etapa34-tools`, PostgreSQL e SeaweedFS locais da 3.4 disponíveis; configuração S3 local autorizada preservada. Identidade exige os serviços exclusivos `identity-postgres`/`identity-mailpit` do `compose.test.yaml`, arquivo sintético `.local/identity-test.env` e migrations aplicadas **somente em `identity_test`**. O runner agregado não prepara identidade sozinho. Gere a configuração ausente com `docker exec cifradesk-etapa34-tools node scripts/setup-identity-tests.mjs`; o script preserva arquivo existente. Confira nome do projeto Compose efetivo: `.env` pode definir `COMPOSE_PROJECT_NAME`, sobrepondo o nome do YAML. Não remova serviços órfãos nem volumes.
+
+O container de ferramentas precisa alcançar os serviços de identidade pela rede de testes, além da rede local dos runners de chamados. Nesta execução, os serviços de identidade ficaram em `cifradesk-local_default`; ferramentas foram conectadas a essa rede. Não copie credenciais nem configure URLs de produção. Antes de migrar identidade, confirme destino `identity-postgres`/`identity_test` e use `docker exec cifradesk-etapa34-tools node --env-file=.local/identity-test.env scripts/run-local.mjs pnpm db:migrate`.
+
+Depois do preparo autorizado, execute sequencialmente, da raiz:
+
+```powershell
+docker exec cifradesk-etapa34-tools pnpm db:generate
+docker exec cifradesk-etapa34-tools pnpm check
+node scripts/test-stage-three.mjs
+docker exec cifradesk-etapa34-tools pnpm build
+node scripts/test-ticket-interface.mjs --all
+```
+
+`node` no host apenas orquestra Docker; use um binário instalado por caminho explícito caso o gerenciador do host recuse a versão. Testes/compilação usam Node do container. `pnpm test:integration` isoladamente continua sendo apenas identidade; `test-stage-three.mjs` acrescenta explicitamente persistência SQL e todas as integrações de chamados, cada qual no seu banco sintético. Não executar testes pesados ou build simultaneamente nesse container.
+
+O E2E `--all` inclui fundação visual, identidade e chamados, em Chromium desktop/celular, sem retries. Inicia o standalone recém-compilado em `127.0.0.1:3317` dentro do container, banco exclusivo `tickets37_test_*`, segredo de sessão aleatório e SMTP `identity-mailpit:1025`. Não publica porta e encerra o servidor ao finalizar. Sem `--all`, seleciona somente chamados. Logs/traces/relatórios ficam em `.local`, ignorados pelo Git; contêm somente dados/sessões sintéticas. O upload de recuperação no navegador é simulado; o runner de abertura testa S3 real separadamente. [Resultados e limites da 3.8](etapa-3-execucao.md).

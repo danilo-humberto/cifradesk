@@ -1,6 +1,6 @@
 # Etapa 3 — Chamados completos: tarefas e critérios de aceite
 
-Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7 implementada, validada e revisada localmente, com commits locais autorizados; 3.8 não iniciada.** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
+Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7 implementada, validada e revisada localmente, com commits locais autorizados; 3.8 validada e revisada localmente, com commits locais autorizados; evidências em [execução da 3.8](etapa-3-execucao.md).** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
 
 ## Por que esta é a próxima etapa
 
@@ -87,7 +87,7 @@ Compartilhado: abertura, status, responsáveis, setor, prioridade, prazo e resum
 
 ## Tarefas menores
 
-Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7 implementada, validada e revisada localmente, com commits locais autorizados; 3.8 não iniciada. As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
+Tarefa 3.1 concluída no planejamento; 3.2 e 3.4 implementadas e revisadas localmente; 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7 implementada, validada e revisada localmente, com commits locais autorizados; 3.8 validada e revisada localmente, com commits locais autorizados; evidências em [execução da 3.8](etapa-3-execucao.md). As tarefas são divisões de execução da mesma entrega, sem PR separado por camada.
 
 ### 3.1 — Fechar regras e matriz de acesso
 
@@ -177,16 +177,16 @@ Políticas de acesso autorizadas explicitamente pelo usuário em 13/11/2026. [Co
 
 ### 3.8 — Validar, revisar e documentar a entrega
 
-**Dependências:** todas as anteriores. **Entrega:** evidências reais e documentação atualizada; proposta de registro em `docs/etapa-3-execucao.md`.
+**Dependências:** todas as anteriores. **Entrega:** [evidências reais, revisão e limitações da 3.8](etapa-3-execucao.md). Validação local aprovada; auditoria após commits e publicação permanecem pendentes.
 
 **Critérios de aceite:**
 
-- [ ] Para comportamentos testáveis, registrar RED → GREEN → REFACTOR durante cada tarefa; não deixar a escrita dos testes para esta última tarefa.
-- [ ] Executar geração Prisma, `pnpm check`, build, integrações e E2E em ambiente isolado. O script atual `test:integration` seleciona apenas identidade: incluir explicitamente os novos testes antes de declarar a suíte completa aprovada.
-- [ ] E2E com contas sintéticas prova: mesma conta solicita/atende; solicitante acompanha outro setor; terceiro não acessa item; integrante opera; usuário desativado perde acesso; duas sessões recebem conflito de edição.
-- [ ] Registrar comandos, resultados, falhas preexistentes e correções; revalidar regressões de identidade. Testes não executados permanecem pendentes.
-- [ ] Atualizar plano, arquitetura, contratos/permissões e operação conforme o comportamento entregue, ao concluir cada responsabilidade afetada.
-- [ ] Revisão independente de autorização, transações e concorrência, sem edição pelo revisor; corrigir e reavaliar bloqueios reais.
+- [x] Para comportamentos testáveis, registrar RED → GREEN → REFACTOR durante cada tarefa; não deixar a escrita dos testes para esta última tarefa.
+- [x] Executar geração Prisma, `pnpm check`, build, integrações e E2E em ambiente isolado. O script atual `test:integration` seleciona apenas identidade: incluir explicitamente os novos testes antes de declarar a suíte completa aprovada.
+- [x] E2E com contas sintéticas prova: mesma conta solicita/atende; solicitante acompanha outro setor; terceiro não acessa item; integrante opera; usuário desativado perde acesso; duas sessões recebem conflito de edição.
+- [x] Registrar comandos, resultados, falhas preexistentes e correções; revalidar regressões de identidade. Testes não executados permanecem pendentes.
+- [x] Atualizar plano, arquitetura, contratos/permissões e operação conforme o comportamento entregue, ao concluir cada responsabilidade afetada.
+- [x] Revisão independente de autorização, transações e concorrência, sem edição pelo revisor; corrigir e reavaliar bloqueios reais.
 - [ ] Conferir diff completo e histórico contra a base remota atual antes do único PR; integração à main e conclusão da etapa são registradas somente quando ocorrerem.
 
 ## Execução, risco e aprovações
