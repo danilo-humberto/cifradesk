@@ -200,3 +200,80 @@ A pedido do usuário, todo o diff acumulado foi organizado por responsabilidade 
 Na preparação, o teste ticket-views.spec.ts foi adequado à paginação aprovada: verifica a região “Paginação dos chamados”, preservando as expectativas de 21 registros e páginas 1/2, agora exibidas separadamente. Removidas linhas vazias excedentes no fim dos três novos componentes shadcn.
 
 Validação desta rodada: docker exec cifradesk-local-web-1 pnpm check aprovado (lint, tipos de todos os pacotes e 75 testes; 47 integrações ignoradas). Cada conjunto de código preparado para commit passou por tsc --noEmit em arquivo exportado da árvore do índice Git para diretório isolado no container, reutilizando dependências e tipos gerados existentes. A primeira checagem isolada precisou incluir o cliente Prisma gerado, ausente do arquivo Git; após incluí-lo, os conjuntos passaram. git diff --cached --check aprovado após remover as linhas excedentes. Não foram repetidos build de produção nem E2E, inclusive o cenário de paginação atualizado.
+
+### Sidebar animada e menu da conta — 16/11/2026
+
+A navegação principal tem transição de cor de 200 ms no hover. Um único pseudo-elemento desloca o fundo entre as rotas selecionadas, preservando aria-current também nas subrotas. CSS Anchor Positioning acompanha o item onde há suporte; o fallback usa o índice da rota e as alturas fixas existentes (40 px expandida, 32 px recolhida, intervalo de 4 px). Movimento reduzido remove o deslocamento animado sem remover o destaque; cores forçadas usam uma borda de sistema.
+
+O rodapé mostra Avatar shadcn (imagem da conta ou iniciais), nome, e-mail truncado e seta para cima. DropdownMenu shadcn reúne Notificações, Preferências e Sair da conta; o menu mostra o e-mail completo, tem limites de viewport e abre acima do acionador. Espaço/Enter abrem, setas percorrem os itens e Escape fecha. Navegar por uma opção fecha também a sidebar móvel. Sem JavaScript, os links de notificações/preferências permanecem disponíveis em noscript; sair continua exigindo JavaScript.
+
+Somente nome, e-mail e imagem retornados por requireUser são passados à sidebar. O hook useLogout reaproveita a implementação existente de preferências: POST de sign-out, limpeza dos feedbacks/cache e navegação para login. A opção fica indisponível enquanto aguarda; falha mantém o menu, mostra mensagem e permite repetir. Encerrar todas as sessões continua somente em Preferências, com a confirmação existente. Nenhuma API, permissão, contrato de autenticação ou dependência foi alterada. Notificações continua apontando à página existente, ainda em preparação.
+
+Validação: docker exec cifradesk-local-web-1 pnpm check aprovou lint, tipos e 75 testes; 47 integrações ignoradas pelo comando padrão. Conferência no navegador local comprovou menu por teclado, foco inicial em Notificações, navegação para Preferências no desktop e Notificações no móvel, fechamento do painel móvel, menu com sidebar recolhida e viewport de 390 px sem overflow (menu com 256 px). Destaque mudou de top 88 px em Setores para 44 px em Minhas solicitações, com transição computada de 200 ms. Captura: .local/sidebar-account-preview.jpg. O indicador de desenvolvimento do Next.js sobrepõe o avatar no canto inferior esquerdo, especialmente recolhido; o menu foi acessado por teclado nesse caso.
+
+foundation.spec.ts foi atualizado para o novo caminho de navegação e recebeu cenários de identidade, teclado/foco, falha e nova tentativa de logout e movimento reduzido. Esses E2E não foram executados: a fixture exige banco sintético isolado e o ambiente em execução é o de trabalho. Não há evidência RED/GREEN deste incremento. Logout real, fallback sem JavaScript, movimento reduzido em execução, cores forçadas, Firefox/Safari e build de produção permanecem sem validação nesta rodada. Não declarar a implementação integralmente validada por pnpm check.
+
+Roteiro manual restante: em ambiente sintético, testar falha e sucesso de Sair da conta, verificar que apenas a sessão atual é encerrada; repetir navegação com movimento reduzido, cores forçadas e sem JavaScript. Conferir animação durante a troca e não apenas suas posições finais.
+
+Minuta para o Linear — não publicada:
+
+#### O QUE E POR QUE
+
+Um destaque CSS compartilhado acompanha a rota, com hover de 200 ms. Menu shadcn reúne identidade e ações da conta e reutiliza o logout existente, sem chamadas extras para buscar o usuário.
+
+#### ALERTA DO SÊNIOR
+
+Fallback do destaque depende das alturas e espaçamento definidos na sidebar; alterações nesses tokens devem acompanhar o cálculo. DevTools do Next.js sobrepõe o avatar localmente quando recolhido. E2E e logout real pendentes; não há garantia de ausência de falhas.
+
+#### FOCO DE REVISÃO
+
+apps/web/src/components/layout/sidebar.tsx: identidade, menu, navegação e estados. apps/web/src/components/session-controls.tsx: reaproveitamento da saída de sessão e tratamento de falhas. Sem commits, push, PR ou publicação no Linear.
+
+### Cursor dos elementos interativos — 16/11/2026
+
+A regra cursor-pointer do AGENTS.md é aplicada em globals.css aos links com destino, botões, campos, labels associados, seletores e opções, controles com papéis ARIA interativos e botões de rolagem do Select shadcn. O botão nativo de escolha de arquivo também recebe pointer. A declaração global usa @apply cursor-pointer fora das camadas Tailwind para prevalecer sobre cursor-default dos componentes incorporados, sem !important nem duplicação em cada tela.
+
+A varredura de componentes e páginas encontrou as ações atuais expressas por esses elementos/papéis; não foram encontrados manipuladores de clique em contêineres sem semântica. Estados disabled, aria-disabled, data-disabled, inert e descendentes de fieldsets desabilitados são excluídos, assim como labels adjacentes ou envolvendo controles desabilitados. A regra não cria eventos, destinos nem disponibilidade de ações. Componentes futuros devem manter semântica interativa apropriada ou adicionar explicitamente cursor-pointer.
+
+Conferência no navegador em /departments: estilos computados confirmaram pointer nos links, botão da sidebar, menu da conta, atualizar, seletores, labels e todas as oito opções do status; os botões Anterior/Próxima desabilitados continuaram com default. Menus Notificações, Preferências e Sair da conta também receberam pointer. Nenhuma ação de escrita foi enviada. Sem novos testes para este ajuste visual global; não houve TDD. A varredura estática cobre o código atual, mas nem todas as telas/estados foram abertos no navegador.
+
+Minuta para o Linear — não publicada:
+
+#### O QUE E POR QUE
+
+Cursor de mão padronizado nos elementos interativos por uma regra CSS central. A cascata cobre também os padrões do shadcn, sem alterar cada consumidor.
+
+#### ALERTA DO SÊNIOR
+
+A regra depende da semântica dos elementos; novos controles customizados precisam usar elemento/papel apropriado ou cursor-pointer explícito. Verificação visual por amostragem; não houve execução da suíte E2E.
+
+#### FOCO DE REVISÃO
+
+apps/web/src/app/globals.css: seletores cobertos, precedência e exclusões de estados desabilitados. Alterações anteriores preservadas; sem commits, push ou PR neste incremento.
+Validação automática deste incremento: docker exec cifradesk-local-web-1 pnpm check aprovado — lint, tipos e 75 testes; 47 integrações ignoradas. git diff --check sem erros. Sem build de produção ou E2E nesta rodada.
+
+### Contorno das opções do menu — 16/11/2026
+
+DropdownMenuContent distingue movimento do ponteiro de entrada pelo teclado. Na interação por mouse, o estilo global de focus-visible deixa de desenhar contorno nos itens; a cor de fundo de destaque permanece. Ao pressionar uma tecla no menu, o contorno de foco volta, inclusive se o ponteiro continuar sobre uma opção. Eventos fornecidos pelos consumidores continuam sendo chamados.
+
+Validação: lint do componente, typecheck do web e git diff --check aprovados. No navegador local, abertura por Espaço apresentou contorno sólido de 3 px; interação por ponteiro mudou data-input-method para pointer e os itens ficaram com outline none; ArrowDown restaurou keyboard e contorno sólido de 3 px. Sem novos testes automatizados, build ou E2E para este ajuste pontual de apresentação. Sem commits ou publicação.
+
+Minuta para o Linear — não publicada:
+
+#### O QUE E POR QUE
+
+Contorno removido das opções durante interação por mouse, preservando destaque de fundo e foco de teclado. Estado local ao menu evita mudar o foco global da aplicação.
+
+#### ALERTA DO SÊNIOR
+
+Validação manual limitada ao navegador local; suíte E2E e dispositivos de toque não executados. Nenhum defeito adicional identificado no incremento.
+
+#### FOCO DE REVISÃO
+
+components/ui/dropdown-menu.tsx: identificação da entrada e composição dos eventos. app/globals.css: remoção do contorno limitada aos itens do menu no modo ponteiro.
+
+### Commits da sidebar e interações — 16/11/2026
+
+Todo o diff pendente foi autorizado para commits locais e organizado em sidebar/menu da conta, cursor dos controles, foco no hover e documentação. As menções anteriores a “sem commits” representam o estado de cada entrega antes desta consolidação. Nenhum push, PR, merge ou publicação no Linear foi realizado.
+
+Na preparação, docker exec cifradesk-local-web-1 pnpm check passou novamente: lint, tipos e 75 testes; 47 integrações ignoradas. As árvores preparadas antes e depois da mudança TypeScript de hover passaram em tsc --noEmit para web e ferramentas, exportadas do índice Git em diretórios isolados, reutilizando dependências e tipos gerados. O commit de cursor altera somente CSS e instruções, sem mudar o estado TypeScript. git diff --cached --check passou nos conjuntos. Build de produção e E2E não foram executados; as limitações funcionais registradas acima permanecem.
