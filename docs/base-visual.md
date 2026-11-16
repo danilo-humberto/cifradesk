@@ -412,3 +412,34 @@ Animar largura recalcula layout durante 300 ms; necessário para o conteúdo aco
 `apps/web/src/components/ui/sidebar.tsx`: transição e ciclo de arraste. `apps/web/src/app/globals.css`: dimensões, logo e opacidade. Branch `codex/sidebar-transicao-suave` criada da base local `9e075fe`, preservando os trabalhos existentes. Sem commit, push, PR ou publicação no Linear.
 
 Consolidação autorizada em 16/11/2026: ajuste de interface registrado no commit local 234a094, acompanhado de commit separado desta documentação. A menção acima a ausência de commit descreve a entrega anterior à autorização. Sem push, PR ou publicação no Linear.
+
+### Setores: ações e seleção de integrantes — 16/11/2026
+
+Salvar setor permanece à esquerda; Integrantes e Desativar/Reativar ficam à direita na mesma linha, com quebra em telas estreitas. Integrantes recebe fundo azul, desativação rosa e reativação verde, mantendo texto e confirmação. O formulário de nome continua independente das ações auxiliares.
+
+Adicionar integrantes abre um Sheet shadcn lateral com busca por nome/e-mail, Checkbox e contador. Ao abrir, carrega todas as páginas dos endpoints existentes de usuários e integrantes; busca abrange a lista completa carregada. Contas inativas/convidadas e integrantes atuais aparecem identificados e indisponíveis. Marcar todos seleciona os usuários elegíveis dos resultados da busca; quando todos estão selecionados, vira Desmarcar todos. Seleções fora do filtro são preservadas. Cancelar/fechar descarta a seleção na próxima abertura, sem gravar.
+
+A confirmação envia inclusões sequenciais pela API existente, sem alterar autorização, contratos ou dependências. Interrompe na primeira falha, informa quantos foram adicionados e preserva os IDs restantes. O cache é invalidado uma vez ao final; fechamento e dupla submissão ficam bloqueados durante o envio. Não há transação única para o lote. O limite atual de 60 mutações administrativas pode interromper lotes grandes; nova tentativa continua pelas seleções restantes.
+
+Validação: RED em `pnpm exec vitest run apps/web/src/lib/member-selection.test.ts` por módulo ainda inexistente; GREEN com cinco testes de paginação, carga incompleta, seleção filtrada, duplicados e falha parcial. `docker exec cifradesk-local-web-1 pnpm check` aprovou lint, tipos e 80 testes; 47 integrações ignoradas. Após correção do nome acessível do drawer, lint e tipos reexecutados. `git diff --check` aprovado.
+
+Navegador local: três botões com a mesma coordenada vertical e backgrounds distintos; seleção individual por Espaço, marcar/desmarcar, busca sem resultados, Escape/Cancelar e foco devolvido ao acionador. Drawer de 390 px sem overflow horizontal. Capturas em `.local/setor-acoes.jpg` e `.local/setor-drawer.jpg`. Nenhuma inclusão/remoção real foi enviada; envio e falha parcial foram exercitados com callbacks sintéticos nos testes. Tema claro, leitor de tela e E2E completo não executados.
+
+Roteiro manual: Administração → Setores → Integrantes → Adicionar integrantes; buscar por nome/e-mail, alternar seleção individual/coletiva e cancelar. Em ambiente de teste autorizado, confirmar um lote e conferir os vínculos, inclusive falha de rede ou limite de requisições.
+
+### O QUE E POR QUE
+
+Ações alinhadas e coloridas; seleção múltipla em painel lateral com componentes shadcn existentes. Reutiliza a API paginada e a inclusão individual, preservando regras de acesso e tratando sucesso parcial explicitamente.
+
+### ALERTA DO SÊNIOR
+
+Carregar e renderizar todo o diretório cresce com a quantidade de usuários; não houve teste com milhares de contas. Inclusão sequencial pode ser parcial por limite de requisições ou falha de rede. Paginação por deslocamento não representa um snapshot transacional se o diretório mudar durante a leitura.
+
+### FOCO DE REVISÃO
+
+`apps/web/src/components/admin-panel.tsx`: estados, seleção, envio e acessibilidade. `apps/web/src/lib/member-selection.ts`: leitura paginada e interrupção do lote. Branch `codex/setores-drawer-integrantes`, baseada em `c9b414a`; cinco arquivos alterados, sem commits, push, PR ou publicação no Linear.
+
+Refinamento do drawer: busca com altura de 44 px (`h-11`); checkbox selecionado usa fundo e borda primários com marca em cor contrastante, inclusive no tema escuro. Estilo restrito ao seletor de integrantes; foco e estados desabilitados preservados. Ajuste visual sem novos testes de comportamento.
+Conferência deste refinamento: navegador confirmou fundo selecionado rgb(166, 190, 255), marca rgb(22, 38, 76) e input de 44 px; lint aprovado e git diff --check sem erros. Captura: .local/setor-drawer-refinado.jpg. Sem commits, push ou PR.
+
+Consolidação autorizada em 16/11/2026: commits locais 9937996 (seleção, inclusão sequencial e testes) e 623e46a (ações de setores, drawer e refinamentos visuais), acompanhados de commit separado desta documentação. As menções anteriores a ausência de commits descrevem as entregas antes da autorização. Sem push, PR ou publicação no Linear.
