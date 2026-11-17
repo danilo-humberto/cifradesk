@@ -166,7 +166,19 @@ Para reproduzir a integração da 3.4, usar `node scripts/test-ticket-opening.mj
 
 `node scripts/test-ticket-operations.mjs` cria banco/papel sintéticos `tickets36_test_*` no PostgreSQL local existente, aplica somente as migrations já existentes nesse banco e executa oito integrações. Usa `cifradesk-etapa34-tools`, sem credenciais da aplicação ou S3, e preserva a base para diagnóstico. Não atualiza a aplicação em execução. [API, eventos, controle de versão, testes e limites](tarefa-3.6-operacoes.md). Remoções administrativas podem atingir o timeout transacional de 15 segundos em volume: nesse caso ocorre rollback integral; medir carga antes de ampliar uso.
 
+## Persistência de conversas — tarefa 4.1
+
+Executar `node scripts/test-message-persistence.mjs` no host com Docker e os containers locais `cifradesk-local-postgres-1` e `cifradesk-etapa34-tools` disponíveis. O container de ferramentas deve conter o código atual e o cliente gerado por `pnpm db:generate`; se o workspace tiver sido copiado em vez de montado, sincronizar os arquivos antes. O Node do host apenas orquestra Docker; compilação e integrações usam Node 24.22.3 do container.
+
+O runner cria bancos e papéis próprios `messages41_test_*`, sem superusuário, criação de bancos ou criação de papéis para a conexão de testes. A conexão administrativa local é usada somente para preparar esses recursos; migrations e verificações executam sob o papel sintético. Não lê `.env`, credenciais de aplicação nem S3. Os bancos ficam preservados para diagnóstico, sem remoção automática. Nenhuma migration é aplicada ao banco da aplicação.
+
+São executados dois cenários: base vazia e atualização com registros sintéticos inseridos antes da migration de mensagens. O runner verifica preservação dos anexos, constraints, snapshots imutáveis, exclusão lógica, índices e equivalência entre schema Prisma e banco migrado. Em cada cenário, seleciona explicitamente as três integrações Prisma, incluindo download legado com armazenamento em memória e rollback. `--upgrade-only` executa somente a atualização. `pnpm check` e `pnpm test:integration` sozinhos não executam esses cenários. [Resultados e limites da 4.1](etapa-4-planejamento.md#execução-da-41--17112026).
+
+Criar novas bases pelas migrations, não por `db push`: checks e trigger de imutabilidade não são representados integralmente no Prisma. A 4.1 não habilita publicação de mensagens; proteção dos caminhos antigos de anexos e regras de edição/exclusão continuam nas próximas tarefas.
+
 ## Regressão completa — tarefa 3.8
+
+O runner da etapa 3 abaixo não inclui conversas. Para a persistência da 4.1, usar também o procedimento acima.
 
 Pré-requisitos: Docker iniciado; `cifradesk-etapa34-tools`, PostgreSQL e SeaweedFS locais da 3.4 disponíveis; configuração S3 local autorizada preservada. Identidade exige os serviços exclusivos `identity-postgres`/`identity-mailpit` do `compose.test.yaml`, arquivo sintético `.local/identity-test.env` e migrations aplicadas **somente em `identity_test`**. O runner agregado não prepara identidade sozinho. Gere a configuração ausente com `docker exec cifradesk-etapa34-tools node scripts/setup-identity-tests.mjs`; o script preserva arquivo existente. Confira nome do projeto Compose efetivo: `.env` pode definir `COMPOSE_PROJECT_NAME`, sobrepondo o nome do YAML. Não remova serviços órfãos nem volumes.
 

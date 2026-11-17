@@ -36,6 +36,7 @@ model User {
   assignedTickets TicketAssignee[] @relation("AssignedBy")
   ticketActivities TicketActivity[]
   ticketAttachments TicketAttachment[]
+  ticketMessages TicketMessage[]
 }
 model Session {
   id String @id
@@ -166,6 +167,7 @@ model Ticket {
   assignees TicketAssignee[]
   activities TicketActivity[]
   attachments TicketAttachment[]
+  messages TicketMessage[]
   outboxEvents OutboxEvent[]
   @@index([createdById, createdAt, id])
   @@index([departmentId, status, createdAt, id])
@@ -204,6 +206,9 @@ model TicketAttachment {
   id String @id @default(uuid()) @db.Uuid
   ticketId String @db.Uuid
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  messageId String? @db.Uuid
+  message TicketMessage? @relation(fields: [messageId, ticketId], references: [id, ticketId], onDelete: Restrict, onUpdate: Restrict)
+  removedAt DateTime? @db.Timestamptz(3)
   uploadedById String
   uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
   originalName String @db.VarChar(255)
@@ -215,6 +220,38 @@ model TicketAttachment {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   @@index([ticketId, status, createdAt, id])
   @@index([uploadedById])
+  @@index([messageId, removedAt, createdAt, id])
+}
+model TicketMessage {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  authorId String
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  markdown String
+  visibility ActivityVisibility
+  version Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  attachments TicketAttachment[]
+  revisions TicketMessageRevision[]
+  @@unique([id, ticketId])
+  @@index([ticketId, createdAt, id])
+  @@index([ticketId, visibility, createdAt, id])
+  @@index([authorId])
+}
+model TicketMessageRevision {
+  id String @id @default(uuid()) @db.Uuid
+  messageId String @db.Uuid
+  message TicketMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  version Int
+  markdown String
+  // Immutable [{ id, originalName }] snapshot, validated by the SQL migration.
+  // Download eligibility always comes from the current attachment/message.
+  attachments Json
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([messageId, version])
 }
 model OutboxEvent {
   id String @id @default(uuid()) @db.Uuid
