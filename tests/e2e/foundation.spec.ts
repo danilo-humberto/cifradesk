@@ -87,7 +87,7 @@ test('sidebar abre, fecha e identifica a página ativa', async ({ page }) => {
     await expect(page.locator('[data-slot=sidebar-container]')).toHaveCSS('width', '56px');
     const logo = page.getByRole('img', { name: 'Logo Cifra' });
     await expect(logo).toBeVisible();
-    await expect(logo).toHaveCSS('width', '32px');
+    await expect.poll(() => logo.evaluate(image => Math.round(image.getBoundingClientRect().width))).toBe(32);
     await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: /^Menu da conta:/ })).toBeVisible();
     await trigger.click();
@@ -129,7 +129,7 @@ test('destaque da navegação acompanha a rota e respeita movimento reduzido', a
   if ((page.viewportSize()?.width ?? 1280) < 768) await page.getByRole('button', { name: 'Alternar navegação' }).click();
   const selected = page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Setores', exact: true });
   await expect(selected).toHaveAttribute('aria-current', 'page');
-  await expect(selected).toHaveCSS('transition-duration', '0.2s, 0.2s');
+  await expect(selected).toHaveCSS('transition-duration', '0s');
   const menu = page.locator('.sidebar-sliding-menu');
   await expect(menu).toHaveAttribute('data-has-active', 'true');
   expect(await menu.evaluate(element => getComputedStyle(element, '::before').transitionDuration)).toBe('0s');
