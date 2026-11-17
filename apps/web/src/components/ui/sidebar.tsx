@@ -296,7 +296,7 @@ function SidebarResizeHandle({ side, onResizingChange }: { side: "left" | "right
       aria-valuemax={SIDEBAR_MAX_WIDTH}
       aria-valuenow={currentWidth}
       aria-valuetext={`${currentWidth} pixels`}
-      className={cn("absolute inset-y-0 z-20 h-full w-2! cursor-ew-resize! touch-pan-y select-none bg-transparent outline-none!", side === "left" ? "-right-1" : "-left-1")}
+      className={cn("absolute inset-y-0 z-20 h-full w-2! cursor-ew-resize! touch-pan-y select-none bg-transparent focus-visible:bg-ring", side === "left" ? "-right-1" : "-left-1")}
       onPointerDown={(event) => {
         if (event.button !== 0 || !event.isPrimary) return
         event.preventDefault()
@@ -599,7 +599,7 @@ function SidebarMenuButton({
     />
   )
 
-  if (!tooltip) {
+  if (!tooltip || isMobile || state !== "collapsed") {
     return button
   }
 
