@@ -6,7 +6,7 @@ import localFont from 'next/font/local';
 import { useRef, useState, type CSSProperties } from 'react';
 import logo from '@/assets/logo-cifra.png';
 import { usePathname } from 'next/navigation';
-import { Bell, Building2, ChevronUp, Inbox, ListTodo, LogOut, Settings2 } from 'lucide-react';
+import { Bell, Building2, ChevronUp, Inbox, ListTodo, LogOut, Plus, Settings2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useLogout } from '@/components/session-controls';
@@ -58,6 +58,11 @@ export function AppSidebar({ isAdmin = false, user }: { isAdmin?: boolean; user:
       </SidebarHeader>
       <SidebarContent><SidebarGroup className="px-3">{menu}</SidebarGroup></SidebarContent>
       <SidebarFooter className="gap-3 p-3">
+        <SidebarMenu><SidebarMenuItem>
+          <SidebarMenuButton asChild tooltip="Abrir chamado" className="h-10 cursor-pointer justify-center gap-3 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-[7px]!">
+            <Link href="/requests/new" aria-label="Abrir chamado" onClick={closeMobile}><Plus aria-hidden="true" /><span className="sidebar-label">Abrir chamado</span></Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem></SidebarMenu>
         <Separator />
         <SidebarMenu><SidebarMenuItem>
           <DropdownMenu open={accountOpen} onOpenChange={open => { setAccountOpen(open); if (open) navigating.current = false; }}>

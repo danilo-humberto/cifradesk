@@ -35,7 +35,7 @@ export function TicketList({ userId, scope }: { userId: string; scope: 'mine' | 
             <SelectItem value="cards"><LayoutGrid aria-hidden="true" />Cards</SelectItem>
           </SelectContent>
         </Select>
-        <Button asChild><Link href="/requests/new">Abrir chamado</Link></Button>
+        {scope === 'mine' && <Button asChild><Link href="/requests/new">Abrir chamado</Link></Button>}
       </div>
     </div>
     <search aria-label="Filtros dos chamados" className="grid min-w-0 grid-cols-1 gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2 [&>div]:min-w-0 [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-trigger]]:bg-background">

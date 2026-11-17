@@ -19,8 +19,13 @@ test('visualizações preservam dados, filtros, página e atualização', async 
     await page.getByRole('button', { name: 'Atualizar lista', exact: true }).focus();
     await page.keyboard.press('Tab');
     await expect(view).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('link', { name: 'Abrir chamado', exact: true })).toBeFocused();
+    const opening = page.getByRole('main').getByRole('link', { name: 'Abrir chamado', exact: true });
+    if (path === '/requests') {
+      await page.keyboard.press('Tab');
+      await expect(opening).toBeFocused();
+    } else {
+      await expect(opening).toHaveCount(0);
+    }
     await page.getByRole('combobox', { name: 'Filtrar por status' }).click();
     await page.getByRole('option', { name: 'ABERTA', exact: true }).click();
     await page.getByRole('combobox', { name: 'Filtrar por setor' }).click();
