@@ -443,3 +443,28 @@ Refinamento do drawer: busca com altura de 44 px (`h-11`); checkbox selecionado 
 Conferência deste refinamento: navegador confirmou fundo selecionado rgb(166, 190, 255), marca rgb(22, 38, 76) e input de 44 px; lint aprovado e git diff --check sem erros. Captura: .local/setor-drawer-refinado.jpg. Sem commits, push ou PR.
 
 Consolidação autorizada em 16/11/2026: commits locais 9937996 (seleção, inclusão sequencial e testes) e 623e46a (ações de setores, drawer e refinamentos visuais), acompanhados de commit separado desta documentação. As menções anteriores a ausência de commits descrevem as entregas antes da autorização. Sem push, PR ou publicação no Linear.
+
+## Atalho de abertura na sidebar — 17/11/2026
+
+Branch `codex/abrir-chamado-sidebar`, a partir de `f4ad36b`. O cabeçalho de Setores não mostra mais “Abrir chamado”; Minhas solicitações mantém seu botão. A sidebar oferece o atalho no rodapé, acima da conta, usando SidebarMenuButton shadcn com ícone Plus, nome acessível, tooltip e cursor-pointer. Na sidebar recolhida aparece apenas o ícone; no celular reutiliza o fechamento do menu após navegar.
+
+Validação: lint dos três arquivos TypeScript alterados e typecheck web aprovados; `git diff --check` sem erros. Navegador confirmou posição no rodapé, remoção do cabeçalho de Setores, apresentação recolhida e navegação até o formulário. Captura local: `.local/sidebar-abrir-chamado.jpg`. Teste E2E existente ajustado para distinguir Setores de Minhas solicitações e evitar ambiguidade com o novo link; não executado nesta rodada. Fluxo mobile não exercitado nesta rodada. Alteração simples de navegação sem nova regra de negócio: verificação visual e ajuste do teste existente, sem novo ciclo TDD. Sem commits, push ou PR.
+
+### O QUE E POR QUE
+
+Atalho de abertura no rodapé compartilhado da sidebar, com componente shadcn existente. Removido somente o botão do cabeçalho de Setores. A composição mantém o comportamento responsivo da navegação.
+
+### ALERTA DO SÊNIOR
+
+Nenhum defeito identificado no diff revisado. E2E e interação mobile não foram executados; validação no navegador cobriu desktop expandido/recolhido e destino do link.
+
+### FOCO DE REVISÃO
+
+`apps/web/src/components/layout/sidebar.tsx` (atalho e fechamento mobile) e `apps/web/src/components/tickets/list.tsx` (condição de exibição do botão).
+
+Commits locais autorizados explicitamente em 17/11/2026:
+
+- `cf1c88d feat(ui): adiciona abertura de chamado no rodapé da sidebar`: atalho compartilhado, remoção em Setores e adaptação do teste existente. Arquivos centrais: sidebar.tsx e list.tsx.
+- `docs(ui): registra entrega do atalho na sidebar`: comportamento, evidências e pendências. O hash deste commit documental deve ser consultado no histórico.
+
+A indicação anterior de ausência de commits corresponde à entrega antes da autorização. O diff foi revisado novamente antes dos commits; não houve mudança de código após as validações registradas. Testes E2E e interação mobile continuam pendentes. Sem push, PR ou publicação no Linear.
