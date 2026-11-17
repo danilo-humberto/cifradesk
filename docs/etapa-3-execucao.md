@@ -70,3 +70,26 @@ A medição local não elimina contenção do lock nem custo de páginas profund
 2. `docs: registra validação de chamados (etapa 3.8)`: evidências, limites, reprodução e alteração preexistente de `AGENTS.md`, cuja inclusão foi autorizada explicitamente. O hash deste commit deve ser consultado no histórico, pois não pode constar no próprio conteúdo.
 
 A conferência de registro confirmou main e origin/main na base indicada acima, sem troca de branch. As validações anteriores foram reaproveitadas porque o código executável permaneceu idêntico ao conjunto testado; não houve nova execução das suítes somente para criar os commits.
+
+## Revisão para integração — 17/11/2026
+
+O usuário autorizou push e merge do conjunto completo de 39 commits acumulados até `77bf394`, incluindo chamados, migrations, acesso, administração e interface. A branch de entrega é `codex/abrir-chamado-sidebar`; `main` e `origin/main` foram conferidas em `7ddc3f3`. Os registros anteriores de ausência de publicação são históricos. O merge deve ocorrer pelo único PR deste conjunto, após as verificações finais.
+
+Revisões independentes de backend e frontend, em contexto separado e somente leitura, examinaram o diff completo por área. Não houve sandbox técnico adicional. O backend não apresentou bloqueador confirmado. No frontend, o redimensionador ocultava o foco de teclado; a correção preserva o outline global e aplica `focus-visible:bg-ring`. A reavaliação estática confirmou a correção.
+
+O primeiro E2E teve 60 aprovações, quatro falhas e dois skips. Três falhas eram expectativas incorretas: a logo passou a reduzir por `transform` no commit `234a094`, portanto o teste deve medir a largura visual; movimento reduzido exige duração zero, conforme regra global já existente. A quarta revelou um defeito real: um Tooltip invisível no menu móvel consumia o primeiro Escape. `SidebarMenuButton` agora monta Tooltip somente no desktop recolhido. O teste continua exigindo fechamento com um único Escape. As alterações de testes não removem verificações funcionais. A revisão independente confirmou causa e correções.
+
+Validação em cópia isolada dos arquivos versionados e dependências existentes, sem modificar o servidor de desenvolvimento ou dados de trabalho:
+
+- `pnpm check`: lint, tipos e 86 unitários aprovados após as correções; 47 integrações desativadas nessa execução.
+- `pnpm build`: web e worker aprovados após as correções.
+- `node scripts/test-ticket-persistence.mjs`: fresh/upgrade, restrições, rollback e 12 inserções concorrentes por base aprovados.
+- Runners `test-ticket-queries.mjs`, `test-ticket-operations.mjs` e `test-ticket-opening.mjs`: 12 + 8 + 12 integrações aprovadas, incluindo S3 privado real. Amostra de 2.000 chamados e remoção de 250 atribuições: consultas em 39 ms e remoção em 1.055 ms, sem equivaler a ensaio de capacidade.
+- A suíte isolada de identidade (15 integrações) não foi repetida nesta rodada; suas evidências anteriores permanecem acima. Os fluxos de identidade fazem parte do E2E completo.
+- `node scripts/test-ticket-interface.mjs --all`, após as correções: **64 E2E aprovados em 3,1 minutos, sem retries**. Dois testes de HMR foram pulados porque exigem servidor de desenvolvimento, não o build de produção. Chromium desktop/celular validou também fechamento móvel com um único Escape e movimento reduzido.
+
+Evidências finais locais: `.local/merge-check-final.log`, `.local/merge-build-final.log`, `.local/merge-e2e-final` e `.local/merge-e2e-report`. A rodada inicial com falhas permanece em `.local/merge-e2e-initial`. Commits de correção: `d6d455c` (foco e Escape) e `9f2c58c` (expectativas E2E). O commit documental pode ser identificado pelo histórico.
+
+Limites preservados: contenção do lock global, multipart em memória e limpeza operacional de anexos. As integrações emitiram aviso de depreciação do driver pg sobre consultas concorrentes; não houve falha. Sem validação de produção, carga sustentada, Safari/Firefox ou leitor de tela. Nenhum deploy ou comentário no Linear foi executado.
+
+Arquivos centrais da correção final: `apps/web/src/components/ui/sidebar.tsx` e `tests/e2e/foundation.spec.ts`. Roteiro manual: focar o separador e conferir seu destaque; recolher/expandir e conferir a logo; no celular, abrir a navegação e fechá-la com um único Escape, preservando o retorno do foco ao acionador.
