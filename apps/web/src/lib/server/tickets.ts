@@ -29,12 +29,16 @@ export async function attachmentFiles(request: Request) {
 }
 
 export async function messageBody(request: Request) {
-  const bytes = await boundedBytes(request, 64 * 1024);
+  const bytes = await boundedBytes(request, 100 * 1024 * 1024 + 64 * 1024);
   let form: FormData;
   try { form = await new Response(new Uint8Array(bytes), { headers: { 'content-type': request.headers.get('content-type') ?? '' } }).formData(); }
   catch { throw new DomainError(400, 'Envio de mensagem inválido.'); }
-  if ([...form.keys()].some(key => key !== 'markdown' && key !== 'visibility') ||
-      form.getAll('markdown').length !== 1 || form.getAll('visibility').length !== 1)
-    throw new DomainError(400, 'Informe somente texto e visibilidade, sem campos repetidos.');
-  return createTicketMessageInput.parse({ markdown: form.get('markdown'), visibility: form.get('visibility') });
+  if ([...form.keys()].some(key => !['markdown', 'visibility', 'submissionId', 'files'].includes(key)) ||
+      ['markdown', 'visibility', 'submissionId'].some(key => form.getAll(key).length !== 1))
+    throw new DomainError(400, 'Informe texto, visibilidade e identificador de envio, sem campos repetidos.');
+  const data = createTicketMessageInput.parse({ markdown: form.get('markdown'), visibility: form.get('visibility'), submissionId: form.get('submissionId') });
+  const files = form.getAll('files');
+  if (files.length > 5 || files.some(file => typeof file === 'string' || file.size < 1 || file.size > 20 * 1024 * 1024) || (!data.markdown.trim() && !files.length))
+    throw new DomainError(400, 'Envie texto ou até cinco arquivos de no máximo 20 MB cada.');
+  return { data, files: await Promise.all((files as File[]).map(async file => ({ originalName: file.name, mimeType: file.type, bytes: Buffer.from(await file.arrayBuffer()) }))) };
 }

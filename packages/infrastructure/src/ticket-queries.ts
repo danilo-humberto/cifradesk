@@ -2,6 +2,7 @@ import { database, type Prisma } from '@cifradesk/database';
 import { DomainError } from '@cifradesk/core';
 import { ticketActivityListResponse, ticketIdInput, ticketListScope, ticketListInput, ticketListResponse, ticketPageInput, ticketResponse } from '@cifradesk/contracts/tickets';
 import { ticketActor, type TicketActor, type TicketTx } from './tickets';
+import { visibleAttachments } from './ticket-attachments';
 
 const person = { id: true, name: true, image: true } as const;
 const ticketSelect = {
@@ -64,7 +65,7 @@ export async function listTicketAttachments(actor: TicketActor, ticketId: string
   return read(actor, async tx => {
     const ticket = await authorizedTicket(tx, actor, id);
     const department = await tx.department.findUniqueOrThrow({ where: { id: ticket.department.id }, select: { active: true } });
-    const where = { ticketId: id };
+    const where = { ticketId: id, ...visibleAttachments(actor) };
     const items = await tx.ticketAttachment.findMany({ where, select: { id: true, originalName: true, mimeType: true, size: true, status: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: pageSize, skip: (page - 1) * pageSize });
     return { items, total: await tx.ticketAttachment.count({ where }), page, pageSize, canUpload: department.active };
   });

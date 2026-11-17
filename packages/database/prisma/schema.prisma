@@ -37,6 +37,7 @@ model User {
   ticketActivities TicketActivity[]
   ticketAttachments TicketAttachment[]
   ticketMessages TicketMessage[]
+  messageSubmissions MessageSubmission[]
 }
 model Session {
   id String @id
@@ -168,6 +169,7 @@ model Ticket {
   activities TicketActivity[]
   attachments TicketAttachment[]
   messages TicketMessage[]
+  messageSubmissions MessageSubmission[]
   outboxEvents OutboxEvent[]
   @@index([createdById, createdAt, id])
   @@index([departmentId, status, createdAt, id])
@@ -208,6 +210,8 @@ model TicketAttachment {
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
   messageId String? @db.Uuid
   message TicketMessage? @relation(fields: [messageId, ticketId], references: [id, ticketId], onDelete: Restrict, onUpdate: Restrict)
+  submissionId String? @db.Uuid
+  submission MessageSubmission? @relation(fields: [submissionId, ticketId], references: [id, ticketId], onDelete: Restrict, onUpdate: Restrict)
   removedAt DateTime? @db.Timestamptz(3)
   uploadedById String
   uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
@@ -221,6 +225,27 @@ model TicketAttachment {
   @@index([ticketId, status, createdAt, id])
   @@index([uploadedById])
   @@index([messageId, removedAt, createdAt, id])
+  @@index([submissionId])
+}
+// A durable key/fingerprint survives failures and publication. Each retry owns
+// a new attempt token, so a late upload cannot publish a superseded attempt.
+model MessageSubmission {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  authorId String
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  clientId String @db.Uuid
+  fingerprint String @db.VarChar(64)
+  attemptId String? @db.Uuid
+  messageId String? @unique @db.Uuid
+  message TicketMessage? @relation(fields: [messageId, ticketId], references: [id, ticketId], onDelete: Restrict, onUpdate: Restrict)
+  attachments TicketAttachment[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@unique([id, ticketId])
+  @@unique([ticketId, authorId, clientId])
+  @@index([authorId])
 }
 model TicketMessage {
   id String @id @default(uuid()) @db.Uuid
@@ -236,6 +261,7 @@ model TicketMessage {
   deletedAt DateTime? @db.Timestamptz(3)
   attachments TicketAttachment[]
   revisions TicketMessageRevision[]
+  submissions MessageSubmission[]
   @@unique([id, ticketId])
   @@index([ticketId, createdAt, id])
   @@index([ticketId, visibility, createdAt, id])

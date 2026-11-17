@@ -2,7 +2,7 @@
 
 Data: 17/11/2026.
 
-Status: tarefas 4.1 e 4.2 implementadas e validadas localmente em 17/11/2026; tarefas 4.3–4.6 não iniciadas. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; os commits locais da 4.2 foram autorizados posteriormente; push e PR permanecem não autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
+Status: tarefas 4.1–4.3 implementadas localmente em 17/11/2026; tarefas 4.4–4.6 não iniciadas. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; a 4.2 tem `cfb9ec6` e `d413e8a`. O commit local da 4.3 foi autorizado após a validação e está registrado no histórico da branch; push e PR permanecem não autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
 
 ## Objetivo e decisões fechadas
 
@@ -45,14 +45,14 @@ Tarefas independentes, Kanban, notificações, lembretes e atualização em temp
 
 ### 4.3 — Publicar anexos junto com a mensagem
 
-- [ ] **Testes antes:** mensagem com arquivos, somente arquivos, tipo inválido, sexto arquivo, arquivo acima de 20 MB e ultrapassagem concorrente de 200 MB.
-- [ ] Reutilizar validação real do conteúdo, armazenamento privado e estados de upload existentes. Limite de cinco arquivos ativos por mensagem e cinco novos por envio.
-- [ ] Reservar capacidade antes do upload; publicar mensagem e arquivos somente após todos os uploads e a autorização final.
-- [ ] Não manter transação de banco aberta durante transferência ao armazenamento.
-- [ ] Usar identificador de envio para impedir duplicação em repetição após perda de resposta; rejeitar reaproveitamento com conteúdo diferente.
-- [ ] Proteger também a listagem geral de anexos e a rota antiga de download. Um arquivo interno não pode escapar por esses caminhos.
-- [ ] Testar falha parcial, queda após upload, revogação durante envio/download e recuperação pela limpeza existente, em lotes de até 100 e janela de 30 minutos.
-- [ ] **Pronta quando:** nenhuma publicação parcial aparecer, reenvios não duplicarem mensagens e as regressões de anexos da etapa 3 passarem.
+- [x] **Testes antes:** mensagem com arquivos, somente arquivos, tipo inválido, sexto arquivo, arquivo acima de 20 MB e ultrapassagem concorrente de 200 MB.
+- [x] Reutilizar validação real do conteúdo, armazenamento privado e estados de upload existentes. Limite de cinco arquivos ativos por mensagem e cinco novos por envio.
+- [x] Reservar capacidade antes do upload; publicar mensagem e arquivos somente após todos os uploads e a autorização final.
+- [x] Não manter transação de banco aberta durante transferência ao armazenamento.
+- [x] Usar identificador de envio para impedir duplicação em repetição após perda de resposta; rejeitar reaproveitamento com conteúdo diferente.
+- [x] Proteger também a listagem geral de anexos e a rota antiga de download. Um arquivo interno não pode escapar por esses caminhos.
+- [x] Testar falha parcial, queda após upload, revogação durante envio/download e recuperação pela limpeza existente, em lotes de até 100 e janela de 30 minutos.
+- [x] **Pronta quando:** nenhuma publicação parcial aparecer, reenvios não duplicarem mensagens e as regressões de anexos da etapa 3 passarem.
 
 ### 4.4 — Editar, consultar versões e excluir
 
@@ -97,7 +97,7 @@ Adicionar, sob `/api/tickets/{id}/messages`:
 | `DELETE /{messageId}` | Exclusão lógica com versão esperada |
 | `GET /{messageId}/revisions` | Versões paginadas, sob a mesma autorização da mensagem |
 
-Criação e edição usam multipart com limites reais do corpo, reaproveitando o processamento existente. Respostas nunca expõem chaves do armazenamento. Repetições de operações continuam exigindo autorização atual. **Contrato parcial implementado na 4.2:** GET e POST somente texto (`markdown` e `visibility`); arquivos e identificador de envio serão acrescentados na 4.3. PATCH, DELETE e revisões ainda não existem. Não repetir automaticamente o POST antes da idempotência da 4.3.
+Criação usa multipart com limites reais do corpo, reaproveitando o processamento existente; edição permanece planejada para a 4.4. Respostas nunca expõem chaves do armazenamento. Repetições continuam exigindo autorização atual. **Contrato implementado até a 4.3:** GET e POST com `markdown`, `visibility`, `submissionId` UUID obrigatório e até cinco `files` opcionais. Repetir o mesmo envio exige preservar identificador, texto, visibilidade, metadados, bytes e ordem dos arquivos. PATCH, DELETE e revisões ainda não existem.
 
 Referências centrais:
 
@@ -182,3 +182,52 @@ Divisão autorizada posteriormente pelo usuário para os commits locais: `feat: 
 ### Commits locais da 4.2 — 17/11/2026
 
 Após a entrega acima, o usuário autorizou somente os commits locais, preservando as alterações preexistentes. Primeiro commit: `cfb9ec6 feat: implementa conversas isoladas da etapa 4.2`. Seu estado intermediário passou em `pnpm typecheck` numa cópia isolada do índice Git, sem os arquivos HTTP ainda não commitados. O segundo agrupamento contém adaptador, rota, testes HTTP e os três documentos atualizados. A documentação consolidada acompanha esse agrupamento para registrar o contrato completo da 4.2. O estado final de código corresponde ao que passou em check, build e integrações na entrega; houve apenas remoção de linha vazia excedente no runner. Push, PR, merge e escrita no Linear continuam fora da autorização. A auditoria de publicação da etapa 4 completa permanece para depois das tarefas 4.3–4.6.
+
+### Execução da 4.3 — 17/11/2026
+
+Autorização específica: alterações de autorização dos anexos e schema/migration para idempotência exclusivamente em bancos locais sintéticos; sem commit, push ou PR. Continuação da etapa 4 na branch `codex/etapa-4-conversas`, sobre `d413e8a`. Os três documentos preexistentes da etapa 3/plano geral foram preservados. Nenhuma escrita no Linear, alteração de dependência, UI, merge ou deploy.
+
+Implementados: identificador obrigatório de envio, hash do conteúdo e tentativa persistida; reserva de quota antes do armazenamento; publicação conjunta com reautorização final e snapshot inicial dos arquivos; repetição sem duplicação; isolamento de reservas/anexos internos/removidos nos caminhos legados; recuperação pela limpeza existente. Schema, migration, contratos, serviços, adaptador/rota HTTP, testes/runners e três documentos foram necessários (16 arquivos), mantendo cada responsabilidade em sua fonte existente. [Contrato e limites](architecture.md#publicação-conjunta-e-idempotência--tarefa-43).
+
+Evidências de desenvolvimento: antes da implementação, as nove integrações da 4.2 passaram. Os testes novos revelaram a rejeição de `submissionId` e a ausência do fluxo de anexos; o HTTP teve cinco falhas esperadas ao exigir identificador/arquivos. Duas falhas iniciais eram dados sintéticos inválidos (descrição curta e um arquivo de quase 200 MB), corrigidos para respeitar as constraints existentes; não contam como RED de comportamento. A tipagem apontou retorno possivelmente indefinido na união de reserva/publicação, corrigido com discriminador explícito. O container usa uma cópia do código: a primeira seleção encontrou somente o arquivo antigo; após sincronizar, as duas suítes executaram. O runner agora verifica a presença de ambos os arquivos para impedir omissão silenciosa.
+
+| Verificação executada | Resultado |
+| --- | --- |
+| `docker exec cifradesk-etapa34-tools pnpm db:generate` | Schema válido e cliente Prisma gerado |
+| `docker exec cifradesk-etapa34-tools pnpm check` | Lint, tipagem e 94 testes aprovados; 70 integrações puladas nesse comando geral, sem contá-las como aprovadas |
+| `node scripts/test-ticket-messages.mjs` | 20 integrações aprovadas: nove regressões de conversas e onze cenários de anexos/idempotência |
+| `node scripts/test-message-persistence.mjs` | Base vazia e atualização aprovadas; preservação dos anexos antigos, constraints, snapshots e schema sem diferença; três integrações Prisma em cada cenário |
+| `node scripts/test-ticket-opening.mjs` | 12 integrações aprovadas, incluindo upload/download/remoção no SeaweedFS privado local com bucket sintético |
+| `node scripts/test-ticket-queries.mjs` | 12 integrações aprovadas, incluindo paginação de 2.000 chamados sintéticos |
+| `node scripts/test-ticket-operations.mjs` | Oito integrações aprovadas, incluindo disputa com revogação |
+| `docker exec cifradesk-etapa34-tools pnpm build` | Web e worker compilados; depois houve somente reforço de teste/runner e documentação, com check e integrações reexecutados |
+| `git diff --check` | Sem erros de whitespace |
+
+Banco final de conversas: `messages42_test_7fe1651fdf3929f5994f`; persistência: `messages41_test_7a428613049523f78768` e `messages41_test_af17b447b022034157f3`. Migrations aplicadas sob papéis sintéticos sem superusuário/criação de bancos/papéis; recursos preparados no PostgreSQL Docker local. Nenhuma migration aplicada ao banco da aplicação. O Node disponível no aplicativo orquestrou Docker; testes/build usaram Node 24.22.3 do container. As integrações emitiram o aviso já conhecido de consultas concorrentes do cliente `pg`, sem falha.
+
+Critérios verificados: mensagem com arquivos e somente arquivos; limites de cinco/20 MiB e quota de 200 MiB disputada com outro envio/rota legada; conteúdo falso; repetição igual/diferente; chave por autor; ausência de publicação parcial e rollback do evento; revisão inicial com anexos; ocultação de IDs/contagem; remoção e exclusão lógica; transferência, perda de vínculo e sessão revogada durante IO; limpeza após janela e lotes de 100; exclusão falhando sem liberar quota; execução antiga expirada não publica nem apaga o reenvio. O teste de queda representa o ponto após PUT e antes da publicação por estados persistidos e expiração controlada, sem matar processo real. Resposta perdida é representada por repetir a operação já concluída; não houve corte de conexão HTTP real.
+
+Autoauditoria do diff de trabalho e revisão independente somente leitura por `review-agent`, em contexto limpo: nenhum bloqueador confirmado. O revisor examinou código, migration e testes, sem reexecutar suítes. A reavaliação final incluiu documentação e o teste de limites/constraints; o único ajuste editorial apontado foi corrigido. Os 13 arquivos de código, migration e testes foram comparados por SHA-256 com a cópia validada no container, sem divergências. Limites: escrita remota concluída após a última exclusão, seguida de queda, ainda pode deixar objeto órfão (limitação herdada); limpeza depende de execução operacional; corpo multipart em memória e lock global não foram ensaiados sob carga. A suíte nova usa armazenamento em memória; S3 local real foi exercitado pela regressão da etapa 3. E2E/UI e suíte integral de identidade não foram executados nesta tarefa; interface permanece na 4.5. A revisão é preliminar e não substitui a auditoria futura do histórico/PR completo.
+
+Documentação atualizada: arquitetura (contrato, persistência e limites), operação (execução, reenvio e roteiro manual) e este acompanhamento de execução. Roteiro manual disponível em operação, não executado nesta entrega. Nenhum novo plano temporário foi criado em `docs/`.
+
+Minuta curta para entrega, não publicada:
+
+**O QUE E POR QUE**
+
+Mensagem e arquivos são publicados juntos após validar acesso e reservar capacidade. O registro persistido de envio evita duplicação e diferencia arquivos provisórios dos anexos da abertura, reutilizando armazenamento e limpeza existentes.
+
+**ALERTA DO SÊNIOR**
+
+Nenhum bloqueador confirmado na revisão preliminar. Limpeza depende da janela/execução operacional e mantém a limitação herdada de escrita remota tardia; multipart em memória e lock global exigem avaliação futura de carga.
+
+**FOCO DE REVISÃO**
+
+- `packages/infrastructure/src/ticket-messages.ts`: reserva, tentativa, reenvio e publicação atômica.
+- `packages/infrastructure/src/ticket-attachments.ts`: filtro compartilhado com a listagem e revalidação de download.
+
+Mensagem sugerida, sem execução: `feat: publish message attachments atomically with idempotent retries`.
+
+### Registro do commit local da 4.3 — 17/11/2026
+
+Após a entrega, o usuário autorizou um commit local da 4.3, preservando as alterações preexistentes e vedando push e PR. Os 16 arquivos da tarefa formam uma unidade coerente de persistência, publicação, API, testes e documentação. O código foi comparado por SHA-256 com os 13 arquivos correspondentes no container validado, sem divergências; não houve nova alteração de comportamento. O artefato local de build está ignorado e não integra o commit. Os três documentos preexistentes da etapa 3/plano geral ficam fora do índice. Mensagem: `feat: publish message attachments atomically with idempotent retries`. O hash deve ser consultado no histórico Git, sem autorreferência neste documento.

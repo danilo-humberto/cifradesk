@@ -14,6 +14,7 @@ describe('conversation HTTP', () => {
   const context = () => ({ params: Promise.resolve({ id }) });
   function request(fields: Array<[string, string | File]> = [['markdown', '**Olá**'], ['visibility', 'SHARED']], origin = 'http://localhost:3200') {
     const form = new FormData();
+    form.append('submissionId', id);
     for (const [key, value] of fields) form.append(key, value);
     return new Request(`http://localhost:3200/api/tickets/${id}/messages`, { method: 'POST', headers: { origin }, body: form });
   }
@@ -30,7 +31,7 @@ describe('conversation HTTP', () => {
     expect(response.status).toBe(201);
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(await response.json()).toEqual({ id: 'message' });
-    expect(mocked.createTicketMessage).toHaveBeenCalledWith({ id: 'session-user', authVersion: 3 }, id, { markdown: '**Olá**', visibility: 'SHARED' });
+    expect(mocked.createTicketMessage).toHaveBeenCalledWith({ id: 'session-user', authVersion: 3 }, id, { markdown: '**Olá**', visibility: 'SHARED', submissionId: id }, []);
     expect(mocked.limitAttempts).toHaveBeenCalledWith('ticket:message:session-user', 60);
   });
   it('requires same origin, multipart and valid authentication', async () => {
@@ -42,12 +43,17 @@ describe('conversation HTTP', () => {
     expect((await GET(new Request('http://localhost:3200/api/tickets/id/messages'), context())).status).toBe(401);
     expect(mocked.createTicketMessage).not.toHaveBeenCalled();
   });
-  it('rejects forged, duplicate, unknown, file and invalid text fields before calling the service', async () => {
+  it('accepts attachments alone and keeps bytes separate from the message metadata', async () => {
+    expect((await POST(request([['markdown', ''], ['visibility', 'SHARED'], ['files', new File(['hello'], 'test.txt', { type: 'text/plain' })]]), context())).status).toBe(201);
+    expect(mocked.createTicketMessage).toHaveBeenCalledWith({ id: 'session-user', authVersion: 3 }, id, { markdown: '', visibility: 'SHARED', submissionId: id }, [{ originalName: 'test.txt', mimeType: 'text/plain', bytes: Buffer.from('hello') }]);
+  });
+  it('rejects forged, duplicate, unknown and invalid fields before calling the service', async () => {
     for (const fields of [
       [['markdown', 'ok'], ['visibility', 'SHARED'], ['authorId', 'forged']],
       [['markdown', 'ok'], ['markdown', 'duplicate'], ['visibility', 'SHARED']],
       [['markdown', 'ok'], ['visibility', 'INTERNAL'], ['visibility', 'SHARED']],
-      [['markdown', 'ok'], ['visibility', 'SHARED'], ['files', new File(['x'], 'x.txt')]],
+      [['markdown', 'ok'], ['visibility', 'SHARED'], ['files', 'forged']],
+      [['markdown', 'ok'], ['visibility', 'SHARED'], ['submissionId', id]],
       [['markdown', new File(['x'], 'x.txt')], ['visibility', 'SHARED']],
       [['markdown', ' \n '], ['visibility', 'SHARED']],
       [['markdown', 'x'.repeat(10001)], ['visibility', 'SHARED']],
@@ -57,13 +63,21 @@ describe('conversation HTTP', () => {
     expect(mocked.createTicketMessage).not.toHaveBeenCalled();
   });
   it('bounds actual multipart bytes even with a forged content length and handles malformed data', async () => {
-    const oversized = request([['markdown', 'a'.repeat(65537)], ['visibility', 'SHARED']]);
+    const oversized = request([['markdown', 'a'.repeat(100 * 1024 * 1024 + 65537)], ['visibility', 'SHARED']]);
     oversized.headers.set('content-length', '1');
     expect((await POST(oversized, context())).status).toBe(413);
     const malformed = new Request('http://localhost:3200/api/tickets/id/messages', { method: 'POST', headers: { origin: 'http://localhost:3200', 'content-type': 'multipart/form-data; boundary=missing' }, body: 'broken' });
     expect((await POST(malformed, context())).status).toBe(400);
     expect(mocked.createTicketMessage).not.toHaveBeenCalled();
     expect((await POST(request([['markdown', '😀'.repeat(5000)], ['visibility', 'SHARED']]), context())).status).toBe(201);
+  });
+  it('requires an identifier and limits file count and individual size', async () => {
+    const missing = new FormData();
+    missing.set('markdown', 'hello'); missing.set('visibility', 'SHARED');
+    expect((await POST(new Request('http://localhost:3200/api/tickets/id/messages', { method: 'POST', headers: { origin: 'http://localhost:3200' }, body: missing }), context())).status).toBe(400);
+    expect((await POST(request([['markdown', ''], ['visibility', 'SHARED'], ...Array.from({ length: 6 }, (): [string, File] => ['files', new File(['x'], 'x.txt')])]), context())).status).toBe(400);
+    expect((await POST(request([['markdown', ''], ['visibility', 'SHARED'], ['files', new File([new Uint8Array(20 * 1024 * 1024 + 1)], 'big.txt')]]), context())).status).toBe(400);
+    expect(mocked.createTicketMessage).not.toHaveBeenCalled();
   });
   it('parses pagination, rejects duplicate parameters and does not cache conversations', async () => {
     const response = await GET(new Request('http://localhost:3200/api/tickets/id/messages?page=2&pageSize=10'), context());

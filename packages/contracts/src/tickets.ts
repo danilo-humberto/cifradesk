@@ -81,17 +81,19 @@ export const ticketActivityResponse = z.object({
 const pageResponse = { page: z.number().int().positive(), pageSize: z.number().int().min(1).max(100), total: z.number().int().nonnegative() };
 export const ticketListResponse = z.object({ ...pageResponse, items: z.array(ticketResponse) }).strict();
 export const ticketActivityListResponse = z.object({ ...pageResponse, items: z.array(ticketActivityResponse) }).strict();
-// Text-only publication in 4.2. Attachments and retry identifiers arrive in 4.3.
 // Preserve Markdown whitespace (indentation can be meaningful).
+// The service validates empty text together with the actual files.
 export const createTicketMessageInput = z.object({
-  markdown: z.string().max(10000).refine(value => value.trim().length > 0, 'Escreva uma mensagem.'),
-  visibility: activityVisibility
+  markdown: z.string().max(10000),
+  visibility: activityVisibility,
+  submissionId: uuid
 }).strict();
 export const ticketMessagePageInput = ticketPageInput.extend({ pageSize: z.coerce.number().int().min(1).max(100).default(20) });
 export const ticketMessageResponse = z.object({
   id: uuid, ticketId: uuid, author: person, markdown: z.string().nullable(),
   visibility: activityVisibility, version, createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
-  deletedAt: z.iso.datetime().nullable()
+  deletedAt: z.iso.datetime().nullable(),
+  attachments: z.array(z.object({ id: uuid, originalName: z.string(), mimeType: z.string(), size: z.number().int(), status: z.literal('AVAILABLE') }).strict()).max(5)
 }).strict();
 export const ticketMessageListResponse = z.object({
   ...pageResponse, items: z.array(ticketMessageResponse), canSend: z.boolean(), canSendInternal: z.boolean()

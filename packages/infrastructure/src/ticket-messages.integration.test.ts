@@ -15,7 +15,7 @@ describe.skipIf(!enabled)('conversation isolation PostgreSQL', () => {
   const admin = { id: randomUUID(), authVersion: 1 };
   const nextMember = { id: randomUUID(), authVersion: 1 };
   const sector = randomUUID(), nextSector = randomUUID(), origin = randomUUID();
-  const input = (markdown = 'Texto sintético', visibility = 'SHARED') => ({ markdown, visibility });
+  const input = (markdown = 'Texto sintético', visibility = 'SHARED') => ({ markdown, visibility, submissionId: randomUUID() });
   const ticket = () => db.ticket.create({ data: { title: 'Conversa sintética', description: 'Descrição sintética', requestedFor: 'SELF', requesterName: 'Solicitante', createdById: requester.id, originDepartmentId: origin, originDepartmentName: 'Origem', departmentId: sector } });
   beforeAll(async () => {
     const url = new URL(process.env.DATABASE_URL!);

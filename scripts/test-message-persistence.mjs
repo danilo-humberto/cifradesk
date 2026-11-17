@@ -35,7 +35,7 @@ for (const mode of process.argv.includes('--upgrade-only') ? ['upgrade'] : ['fre
   if (mode === 'fresh') sql(fixture);
   // RED fails here because the new persistence model does not exist yet.
   assert.equal(sql(`SELECT to_regclass('public."TicketMessage"') IS NOT NULL;`), 't', 'TicketMessage migration is missing');
-  if (previous) assert.deepEqual(JSON.parse(sql(`SELECT to_jsonb(a) - 'messageId' - 'removedAt' FROM "TicketAttachment" a;`)), JSON.parse(previous));
+  if (previous) assert.deepEqual(JSON.parse(sql(`SELECT to_jsonb(a) - 'messageId' - 'removedAt' - 'submissionId' FROM "TicketAttachment" a;`)), JSON.parse(previous));
   assert.equal(sql('SELECT "messageId" IS NULL AND "removedAt" IS NULL FROM "TicketAttachment";'), 't');
   assert.equal(sql('SELECT count(*) FROM "User";'), '1');
   assert.equal(sql('SELECT count(*) FROM "Ticket";'), '2');
