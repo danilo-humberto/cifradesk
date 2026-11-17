@@ -176,6 +176,14 @@ São executados dois cenários: base vazia e atualização com registros sintét
 
 Criar novas bases pelas migrations, não por `db push`: checks e trigger de imutabilidade não são representados integralmente no Prisma. A 4.1 não habilita publicação de mensagens; proteção dos caminhos antigos de anexos e regras de edição/exclusão continuam nas próximas tarefas.
 
+## Conversas com isolamento — tarefa 4.2
+
+Executar `node scripts/test-ticket-messages.mjs` no host. Requer PostgreSQL local e `cifradesk-etapa34-tools` com código atualizado e cliente Prisma da 4.1 gerado. O container de ferramentas não monta o workspace nesta execução: sincronizar os arquivos alterados antes dos testes. O runner cria uma base `messages42_test_*` e papel proprietário restrito, aplica as migrations existentes sob esse papel e seleciona explicitamente as nove integrações de conversas. A suíte verifica destino `postgres`, prefixo do banco, usuário correspondente e ausência de privilégios de superusuário/criação de bancos/papéis antes dos dados sintéticos. Credencial aleatória passa por stdin; não lê `.env`. Bancos sintéticos são preservados para diagnóstico; não há migration no banco da aplicação.
+
+Validar também `docker exec cifradesk-etapa34-tools pnpm check` e `docker exec cifradesk-etapa34-tools pnpm build`. O check inclui os seis testes HTTP, mas pula integrações sem a variável habilitadora: o runner específico é obrigatório. Regressões relacionadas: `node scripts/test-ticket-queries.mjs` e `node scripts/test-ticket-operations.mjs`. Executar sequencialmente no container compartilhado. O Node do host somente orquestra Docker; testes e compilação usam o runtime do container.
+
+Conferência manual em ambiente sintético preparado: autenticar solicitante e integrante; enviar multipart com `markdown` e `visibility` à rota `/api/tickets/{id}/messages`; comparar GET e histórico com ambas as contas. Nota interna não pode aparecer nem na contagem do solicitante. Transferir o chamado e confirmar acesso apenas pelo novo setor; desativar setor após fechar seus chamados e conferir leitura sem envio. Terceiro e administrador sem vínculo recebem 404. Essa conferência manual não foi executada nesta tarefa; os cenários correspondentes foram cobertos pelos testes. Ainda não há interface de conversa. [Contrato e limites](architecture.md#conversas-com-isolamento--tarefa-42), [evidências](etapa-4-planejamento.md#execução-da-42--17112026).
+
 ## Regressão completa — tarefa 3.8
 
 O runner da etapa 3 abaixo não inclui conversas. Para a persistência da 4.1, usar também o procedimento acima.

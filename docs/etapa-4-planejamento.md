@@ -2,7 +2,7 @@
 
 Data: 17/11/2026.
 
-Status: tarefa 4.1 implementada e validada localmente em 17/11/2026; tarefas 4.2–4.6 não iniciadas. Somente os itens marcados abaixo possuem execução registrada. Commit local da 4.1 autorizado; push e abertura de PR expressamente não autorizados nesta entrega. Referência de escopo: [plano de implementação](plano-implementacao.md).
+Status: tarefas 4.1 e 4.2 implementadas e validadas localmente em 17/11/2026; tarefas 4.3–4.6 não iniciadas. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; os commits locais da 4.2 foram autorizados posteriormente; push e PR permanecem não autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
 
 ## Objetivo e decisões fechadas
 
@@ -35,13 +35,13 @@ Tarefas independentes, Kanban, notificações, lembretes e atualização em temp
 
 ### 4.2 — Enviar e consultar conversas com isolamento
 
-- [ ] **Testes antes:** solicitante conversa com o setor; integrante publica nota interna; solicitante não recebe nota, contagem ou metadados internos; terceiro e administrador sem vínculo não acessam.
-- [ ] Implementar criação e leitura paginada; padrão de 20 itens, máximo de 100, ordenação estável.
-- [ ] Aplicar autorização antes da paginação e contagem. Autor vem da sessão, nunca do corpo enviado.
-- [ ] Aceitar mensagens em FECHADA; negar novos envios em setor desativado e por usuário inativo.
-- [ ] Gravar mensagem, atividade e evento pendente juntos. Eventos e histórico não devem copiar texto ou nomes de arquivos internos para registros compartilhados.
-- [ ] Testar transferência de setor e perda de vínculo: acesso segue o setor atual; o autor não mantém acesso especial à nota.
-- [ ] **Pronta quando:** testes de regras, API e integração passarem, incluindo rollback e ausência de vazamento por identificadores manipulados.
+- [x] **Testes antes:** solicitante conversa com o setor; integrante publica nota interna; solicitante não recebe nota, contagem ou metadados internos; terceiro e administrador sem vínculo não acessam.
+- [x] Implementar criação e leitura paginada; padrão de 20 itens, máximo de 100, ordenação estável.
+- [x] Aplicar autorização antes da paginação e contagem. Autor vem da sessão, nunca do corpo enviado.
+- [x] Aceitar mensagens em FECHADA; negar novos envios em setor desativado e por usuário inativo.
+- [x] Gravar mensagem, atividade e evento pendente juntos. Eventos e histórico não devem copiar texto ou nomes de arquivos internos para registros compartilhados.
+- [x] Testar transferência de setor e perda de vínculo: acesso segue o setor atual; o autor não mantém acesso especial à nota.
+- [x] **Pronta quando:** testes de regras, API e integração passarem, incluindo rollback e ausência de vazamento por identificadores manipulados.
 
 ### 4.3 — Publicar anexos junto com a mensagem
 
@@ -97,7 +97,7 @@ Adicionar, sob `/api/tickets/{id}/messages`:
 | `DELETE /{messageId}` | Exclusão lógica com versão esperada |
 | `GET /{messageId}/revisions` | Versões paginadas, sob a mesma autorização da mensagem |
 
-Criação e edição usam multipart com limites reais do corpo, reaproveitando o processamento existente. Respostas nunca expõem chaves do armazenamento. Repetições de operações continuam exigindo autorização atual.
+Criação e edição usam multipart com limites reais do corpo, reaproveitando o processamento existente. Respostas nunca expõem chaves do armazenamento. Repetições de operações continuam exigindo autorização atual. **Contrato parcial implementado na 4.2:** GET e POST somente texto (`markdown` e `visibility`); arquivos e identificador de envio serão acrescentados na 4.3. PATCH, DELETE e revisões ainda não existem. Não repetir automaticamente o POST antes da idempotência da 4.3.
 
 Referências centrais:
 
@@ -152,3 +152,33 @@ Revisão independente preliminar do código e reavaliação da documentação/ru
 Roteiro de conferência: gerar o cliente, executar o runner de persistência, conferir os dois cenários e a ausência de diferenças de schema; executar `pnpm check` e `pnpm build` no container atualizado. Não há nova tela para validação manual. [Preparo do ambiente](operations.md#persistência-de-conversas--tarefa-41).
 
 Commit local autorizado: `feat: modela mensagens e revisões da etapa 4.1`, incluindo os sete arquivos da tarefa, com migration, testes necessários à sua consistência e documentação. Arquivos críticos: schema e migration; os testes de integridade não são boilerplate. As evidências acima antecedem o commit; seu hash pertence ao histórico Git. Push e abertura de PR foram expressamente vedados pelo usuário nesta entrega. Nenhum comentário no Linear, merge ou deploy foi executado. O único PR da etapa 4 depende do escopo completo e de autorização própria.
+
+### Execução da 4.2 — 17/11/2026
+
+O usuário autorizou especificamente as regras de autorização e testes locais sintéticos, vedando commit, push e PR. Continuação na branch `codex/etapa-4-conversas`, sobre `8f03dc3`. Os três documentos preexistentes (`etapa-3-execucao.md`, `etapa-3-planejamento.md`, `plano-implementacao.md`) foram preservados sem edição. Não houve nova migration, dependência, interface ou acesso a produção.
+
+Foram alterados onze arquivos da tarefa: contratos, serviço e exportação de infraestrutura, adaptador HTTP, rota, testes HTTP, integração, runner e três documentos (este plano, arquitetura e operação). A divisão mantém autorização/transação no serviço e parsing na fronteira HTTP. [Contrato vigente e limites](architecture.md#conversas-com-isolamento--tarefa-42).
+
+Critérios atendidos: publicação compartilhada/interna, autor da sessão, limite de texto e rejeição de campos forjados, paginação 20/100 com desempate, isolamento de texto/IDs/contagem/histórico, recusa de terceiros/administrador sem vínculo, conta inativa e sessão revogada, FECHADO sem reabertura, setor desativado somente leitura, transferência e perda de vínculo sem privilégio por autoria, revisão inicial e rollback integral quando o outbox falha. Mensagens marcadas como removidas não retornam texto retido. Anexos e reenvio idempotente continuam na 4.3.
+
+| Verificação | Evidência real |
+| --- | --- |
+| `node scripts/test-ticket-messages.mjs`, RED | Base `messages42_test_d35e5e5fcf5c20ff04e7` preparada com papel restrito; oito cenários falharam por serviço ainda não implementado. O teste inicial de rollback passou por aceitar qualquer erro; foi fortalecido para exigir a falha SQL sintética, sem contar esse resultado inicial como evidência de rollback. |
+| Mesmo runner, GREEN | Nove integrações aprovadas em `messages42_test_f59380d67e3b4c4e2f9b`, incluindo rollback com falha injetada no outbox e paginação de 105 mensagens com data empatada. |
+| `docker exec cifradesk-etapa34-tools pnpm exec vitest run apps/web/src/app/api/tickets/messages.test.ts` | RED: seis falhas esperadas com handlers provisórios 501. GREEN: seis aprovados após implementação; sessão, origem, multipart, duplicatas, campos forjados, limite real de bytes e erros. |
+| `docker exec cifradesk-etapa34-tools pnpm check` | Lint e tipagem aprovados; 92 testes aprovados, 59 integrações puladas pelo comando geral. Nove de conversas foram executadas pelo runner específico. |
+| `node scripts/test-ticket-queries.mjs` | 12 integrações aprovadas em `tickets35_test_54b658738a2ef6778734`, incluindo o cenário existente de 2.000 chamados sintéticos. |
+| `node scripts/test-ticket-operations.mjs` | Oito integrações aprovadas em `tickets36_test_8f8070b20adb19734241`. |
+| `docker exec cifradesk-etapa34-tools pnpm build` | Web e worker compilados, incluindo a nova rota de mensagens. |
+
+O Node 24.22.0 instalado no host apenas orquestrou Docker; testes e compilação usaram o runtime da imagem existente. As integrações emitiram o aviso de depreciação de consultas concorrentes no mesmo cliente `pg` já observado na 4.1; não houve falha. Não foram executados E2E, conferência manual de navegador, S3 ou a suíte integral de identidade nesta tarefa sem interface, arquivos ou alteração nos serviços administrativos. As regras de conversa usam contas/vínculos sintéticos e serviços reais de transferência/remoção de vínculo nos testes.
+
+Autoauditoria do working tree e revisão independente via `review-delivery`: nenhum bloqueador confirmado. A revisão é preliminar, não a auditoria de `main..HEAD` para publicação; o revisor examinou código/testes e as evidências, sem reexecutar as suítes. Limites: offset pode deslocar itens entre requisições; lock global pode limitar vazão; falta idempotência até a 4.3. A corrida simultânea envio × revogação não teve teste determinístico novo nesta tarefa; a análise conferiu o lock compartilhado e os testes cobriram acesso após revogação/transferência. Os caminhos legados de arquivos continuam impróprios para anexos internos; o POST da 4.2 rejeita arquivos e vínculos de anexos.
+
+Documentação atualizada: contrato e limites em arquitetura, execução e conferência manual em operação, checklist e evidências neste planejamento. Nenhum comentário no Linear, commit, push, PR, merge ou deploy foi executado. A etapa 4 completa segue pendente das tarefas 4.3–4.6 e da integração autorizada.
+
+Divisão autorizada posteriormente pelo usuário para os commits locais: `feat: implementa conversas isoladas da etapa 4.2` (contrato, serviço, exports e integração/runner); `feat: expõe API de conversas da etapa 4.2` (adaptador, rota, testes HTTP e documentação do endpoint). Cada agrupamento deverá ser validado no estado real antes de criar commits; não separar os testes necessários à consistência do comportamento.
+
+### Commits locais da 4.2 — 17/11/2026
+
+Após a entrega acima, o usuário autorizou somente os commits locais, preservando as alterações preexistentes. Primeiro commit: `cfb9ec6 feat: implementa conversas isoladas da etapa 4.2`. Seu estado intermediário passou em `pnpm typecheck` numa cópia isolada do índice Git, sem os arquivos HTTP ainda não commitados. O segundo agrupamento contém adaptador, rota, testes HTTP e os três documentos atualizados. A documentação consolidada acompanha esse agrupamento para registrar o contrato completo da 4.2. O estado final de código corresponde ao que passou em check, build e integrações na entrega; houve apenas remoção de linha vazia excedente no runner. Push, PR, merge e escrita no Linear continuam fora da autorização. A auditoria de publicação da etapa 4 completa permanece para depois das tarefas 4.3–4.6.
