@@ -17,18 +17,24 @@ async function emailLink(email: string, kind: string) {
 test('convite administrativo, login, recuperação e revogação pelo servidor', async ({ page, browser, request, baseURL }) => {
   const email = randomUUID() + '@example.test';
   await page.goto('/admin');
-  await page.getByLabel('Nome', { exact: true }).first().fill('Nova pessoa');
-  await page.getByLabel('E-mail', { exact: true }).fill(email);
+  await expect(page.getByRole('tab', { name: 'Usuários', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByLabel('Buscar nesta página').fill('sem-correspondencia-' + randomUUID());
+  await expect(page.getByText('Nenhum resultado nesta página. Tente outro termo ou avance a página.')).toBeVisible();
+  await page.getByLabel('Buscar nesta página').fill('');
+  await page.getByRole('button', { name: 'Convidar pessoa', exact: true }).click();
+  await expect(page.getByRole('dialog').getByLabel('Nome', { exact: true })).toBeFocused();
+  await page.getByRole('dialog').getByLabel('Nome', { exact: true }).fill('Nova pessoa');
+  await page.getByRole('dialog').getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Enviar convite', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Alteração salva.' })).toBeVisible();
+  await expect(page.getByRole('region', { name: /Notificações/ }).getByText('Alteração salva.', { exact: true })).toBeVisible();
   const link = await emailLink(email, 'accept-invitation');
   const context = await browser.newContext({ baseURL });
   const invited = await context.newPage();
   await invited.goto(link);
   await invited.getByLabel('Senha', { exact: true }).fill(syntheticPassword);
   await invited.getByRole('button', { name: 'Ativar minha conta' }).click();
-  await expect(invited.getByRole('status')).toContainText('Senha salva');
-  await invited.getByRole('link', { name: 'Voltar para entrar' }).click();
+  await expect(invited.getByRole('region', { name: /Notificações/ })).toContainText('Senha salva');
+  await invited.getByRole('link', { name: 'Entrar no CifraDesk', exact: true }).click();
   await invited.getByLabel('E-mail').fill(email);
   await invited.getByLabel('Senha', { exact: true }).fill(syntheticPassword);
   await invited.getByRole('button', { name: 'Entrar', exact: true }).click();
@@ -50,7 +56,7 @@ test('recuperação por e-mail troca a senha, revoga sessões e permite encerrar
   await resetPage.goto(reset);
   await resetPage.getByLabel('Senha', { exact: true }).fill('New-synthetic-e2e-123!');
   await resetPage.getByRole('button', { name: 'Salvar nova senha' }).click();
-  await expect(resetPage.getByRole('status')).toContainText('Senha salva');
+  await expect(resetPage.getByRole('region', { name: /Notificações/ })).toContainText('Senha salva');
   expect((await request.get('/api/me')).status()).toBe(401);
   expect((await resetting.request.post('/api/auth/sign-in/email', { headers: { Origin: baseURL! }, data: { email, password: 'New-synthetic-e2e-123!' } })).status()).toBe(200);
   expect((await resetting.request.delete('/api/me', { headers: { Origin: baseURL!, 'Content-Type': 'application/json' }, data: {} })).status()).toBe(200);
@@ -65,13 +71,15 @@ test('recusa cadastro público, origem externa e entrada excessiva', async ({ re
 });
 test('setores, integrantes e confirmação acessível', async ({ page, identity, request, baseURL }) => {
   await page.goto('/admin');
-  await page.getByRole('button', { name: 'Setores', exact: true }).click();
+  await page.getByRole('tab', { name: 'Setores', exact: true }).click();
+  await page.getByRole('button', { name: 'Novo setor', exact: true }).click();
   const name = 'Setor ' + randomUUID().slice(0, 8);
   await page.getByLabel('Nome', { exact: true }).fill(name);
   await page.getByRole('button', { name: 'Criar setor' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Alteração salva' })).toBeVisible();
+  await expect(page.getByRole('region', { name: /Notificações/ }).getByText('Alteração salva.', { exact: true })).toBeVisible();
   const department = await database().department.findFirstOrThrow({ where: { name } });
   expect((await request.post('/api/admin/departments/' + department.id + '/members', { headers: { Origin: baseURL! }, data: { userId: identity.id } })).status()).toBe(200);
+  await page.getByRole('button', { name: 'Selecionar setor ' + name, exact: true }).click();
   const card = page.locator('[data-slot="card"]').filter({ has: page.locator('input[value="' + name + '"]') });
   await card.getByRole('button', { name: 'Integrantes', exact: true }).click();
   await expect(page.getByText(identity.email, { exact: false }).last()).toBeVisible();

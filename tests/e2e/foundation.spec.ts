@@ -5,7 +5,12 @@ async function navigate(page: Page, name: string) {
   if ((page.viewportSize()?.width ?? 1280) < 768) {
     await page.getByRole('button', { name: 'Alternar navegação' }).click();
   }
-  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name, exact: true }).click();
+  if (name === 'Preferências' || name === 'Notificações') {
+    await page.getByRole('button', { name: /^Menu da conta:/ }).click();
+    await page.getByRole('menuitem', { name, exact: true }).click();
+  } else {
+    await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name, exact: true }).click();
+  }
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
@@ -46,7 +51,9 @@ test('select de tema usa lista acessível e teclado', async ({ page }) => {
   await theme.focus();
   await page.keyboard.press('Space');
   await expect(page.getByRole('listbox')).toBeVisible();
+  await expect(page.getByRole('option', { name: /Automático/ })).toBeFocused();
   await page.keyboard.press('End');
+  await expect(page.getByRole('option', { name: 'Escuro', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(theme).toHaveText('Escuro');
   await expect(page.locator('html')).toHaveClass('dark');
@@ -58,13 +65,13 @@ test('select de tema usa lista acessível e teclado', async ({ page }) => {
 });
 
 test('sidebar abre, fecha e identifica a página ativa', async ({ page }) => {
-  await page.goto('/settings');
+  await page.goto('/requests');
   const trigger = page.getByRole('button', { name: 'Alternar navegação' });
   if ((page.viewportSize()?.width ?? 1280) < 768) {
     await trigger.click();
     await expect(page.getByRole('dialog', { name: 'Navegação' })).toBeVisible();
     await expect(page.getByRole('img', { name: 'Logo Cifra' })).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Preferências', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Minhas solicitações', exact: true })).toHaveAttribute('aria-current', 'page');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(trigger).toBeFocused();
@@ -80,12 +87,52 @@ test('sidebar abre, fecha e identifica a página ativa', async ({ page }) => {
     await expect(page.locator('[data-slot=sidebar-container]')).toHaveCSS('width', '56px');
     const logo = page.getByRole('img', { name: 'Logo Cifra' });
     await expect(logo).toBeVisible();
-    await expect(logo).toHaveCSS('width', '32px');
+    await expect.poll(() => logo.evaluate(image => Math.round(image.getBoundingClientRect().width))).toBe(32);
     await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-    await expect(page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Preferências', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Menu da conta:/ })).toBeVisible();
     await trigger.click();
-    await expect(page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Preferências', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Minhas solicitações', exact: true })).toHaveAttribute('aria-current', 'page');
   }
+});
+
+test('menu da conta mostra identidade, restaura foco e permite repetir logout com falha', async ({ page, identity }) => {
+  await page.goto('/settings');
+  if ((page.viewportSize()?.width ?? 1280) < 768) await page.getByRole('button', { name: 'Alternar navegação' }).click();
+  const trigger = page.getByRole('button', { name: `Menu da conta: ${identity.email}` });
+  await expect(trigger).toContainText(identity.email);
+  await trigger.focus();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('menuitem', { name: 'Notificações', exact: true })).toBeFocused();
+  await expect(page.getByRole('menuitem', { name: 'Preferências', exact: true })).toHaveAttribute('aria-current', 'page');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  let attempts = 0;
+  await page.route('**/api/auth/sign-out', route => {
+    attempts++;
+    expect(route.request().method()).toBe('POST');
+    return route.fulfill({ status: 500, json: { error: 'Falha sintética' } });
+  });
+  await trigger.click();
+  await page.getByRole('menuitem', { name: 'Sair da conta', exact: true }).click();
+  await expect(page.getByRole('menu')).toContainText('Não foi possível encerrar. Tente novamente.');
+  await expect(page.getByRole('menuitem', { name: 'Sair da conta', exact: true })).toBeEnabled();
+  await page.getByRole('menuitem', { name: 'Sair da conta', exact: true }).click();
+  await expect.poll(() => attempts).toBe(2);
+  await expect(page).toHaveURL(/\/settings$/);
+});
+
+test('destaque da navegação acompanha a rota e respeita movimento reduzido', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/requests');
+  await navigate(page, 'Setores');
+  if ((page.viewportSize()?.width ?? 1280) < 768) await page.getByRole('button', { name: 'Alternar navegação' }).click();
+  const selected = page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Setores', exact: true });
+  await expect(selected).toHaveAttribute('aria-current', 'page');
+  await expect(selected).toHaveCSS('transition-duration', '0s');
+  const menu = page.locator('.sidebar-sliding-menu');
+  await expect(menu).toHaveAttribute('data-has-active', 'true');
+  expect(await menu.evaluate(element => getComputedStyle(element, '::before').transitionDuration)).toBe('0s');
 });
 
 test('atalho de teclado leva ao conteúdo', async ({ page }) => {

@@ -8,10 +8,13 @@ O [plano](plano-implementacao.md) é a referência dos requisitos. A fundação 
 - `apps/worker`: processos `worker` e `dispatcher`, com a mesma imagem. Nesta etapa só expõem liveness; ainda não consomem jobs nem acessam banco.
 - `packages/contracts`: contratos que podem ser importados pelo navegador, sem segredos ou dependência de infraestrutura.
 - `packages/core`: políticas de usuário ativo, administração, convites e elegibilidade por setor, sem dependência de infraestrutura.
-- `packages/database`: schema, migration inicial e client Prisma/PostgreSQL para usuários, contas, sessões, verificações, convites, setores, vínculos e limites de tentativas.
-- `packages/infrastructure`: integração Better Auth/SMTP e operações transacionais de identidade, com autorização e proteção concorrente no PostgreSQL.
+- `packages/database`: schema, migrations e client Prisma/PostgreSQL para identidade/setores e, desde a 3.2, chamados, responsáveis, atividades, metadados de anexos e outbox.
+- `packages/infrastructure`: integração Better Auth/SMTP, operações transacionais de identidade e abertura de chamados, com autorização e proteção concorrente no PostgreSQL. Anexos possuem reservas, validação de conteúdo, armazenamento privado S3 e recuperação operacional; [contratos e limites da 3.4](tarefa-3.4-abertura.md).
+- Consultas de chamados usam transações `RepeatableRead`, com usuário/versão de autenticação e vínculos consultados no mesmo snapshot das páginas e contagens. Predicados de acesso e visibilidade interna são aplicados no PostgreSQL antes da paginação; leituras não usam o lock global das escritas. Respostas HTTP usam `no-store`. [Contratos e limites da 3.5](tarefa-3.5-consultas.md).
 
 O lint impede importação direta de database/infrastructure na interface. Entradas Next.js de servidor usam a barreira `server-only`; a exceção do lint é restrita a lib/server.
+
+A [interface de chamados da 3.7](tarefa-3.7-interface.md) usa páginas de servidor para identidade e componentes de cliente com TanStack Query. Chaves incluem identidade, contexto, filtros e página; mutações invalidam consultas. O editor preserva a versão inicial até recarga explícita. Consultas de opções revalidam sessão/vínculos e retornam dados mínimos paginados; anexos reutilizam a autorização do detalhe. Histórico mantém IDs originais e resolve nomes atuais somente das referências presentes na página autorizada.
 
 ## Interface
 
@@ -25,11 +28,13 @@ shadcn/ui foi configurado manualmente (`components.json`). Button, Sidebar, Sele
 
 Adaptações locais: aliases de importação, textos acessíveis em português, botão de fechamento visível no Sheet, restauração de foco ao acionador, `aria-expanded`; a variante offcanvas usa `inert` quando oculta, enquanto a faixa de ícones permanece interativa. O hook de breakpoint usa `useSyncExternalStore`; Skeleton tem largura determinística para preservar pureza de renderização. Tokens Card/Popover/Sidebar acompanham a paleta existente. O select mantém a persistência do next-themes e a opção automática. Os testes E2E cobrem teclado, Escape, foco, navegação móvel e fallback sem JavaScript.
 
+Feedback de ações usa Sonner 2.0.8, com adaptador shadcn/ui em `components/ui/sonner.tsx` e API compartilhada em `lib/feedback.ts`. Uma região global anuncia as mensagens; erros permanecem até fechamento e também no contexto da ação. Sucessos duram seis segundos, com resultado consultável na tela. O toast acompanha o tema, oferece fechamento por teclado e respeita movimento reduzido. Usa a camada nativa de popover quando disponível e posicionamento fixo nos demais navegadores. Estados de carregamento, falha de consulta e recuperação de conflitos continuam junto ao conteúdo. As telas de acesso reutilizam logo, fonte local e componentes existentes. Veja a atualização em [base visual](base-visual.md#telas-de-acesso-e-feedback--16112026).
+
 ## Execução e isolamento
 
 Compose é exclusivamente local. Rede `entry` conecta proxy/web e a interface local Mailpit no override de desenvolvimento; rede `internal`, com saída externa bloqueada, conecta serviços de dados. Somente proxy e interface Mailpit publicam portas, em loopback, pelo override de desenvolvimento. Os processos não recebem segredos de integrações que ainda não usam.
 
-Cache e filas usam Redis separados: cache descartável com `allkeys-lru`; filas com `noeviction`, AOF e volume. SeaweedFS reúne master/volume/filer/S3 no ambiente local, com volume próprio e configuração S3 autenticada. A criação do bucket e validação funcional de anexos pertencem à etapa 4.
+Cache e filas usam Redis separados: cache descartável com `allkeys-lru`; filas com `noeviction`, AOF e volume. SeaweedFS reúne master/volume/filer/S3 no ambiente local, com volume próprio e configuração S3 autenticada. Bucket privado e upload/download autorizados foram antecipados para a 3.4; mensagens continuam na etapa 4. Downloads passam pelo servidor sem URL pública ou presign. IO S3 ocorre fora das transações; falhas preservam chamado e reservas até limpeza confirmada após janela de graça.
 
 Migrations são explícitas e locais; não há acesso a produção ou envio SMTP externo. O healthcheck web/worker é liveness, não teste de prontidão de fluxos de negócio.
 
@@ -41,3 +46,7 @@ Cabeçalho de 56 px com Breadcrumb contextual e indicação única de prévia. C
 
 A troca manual usa View Transitions e Web Animations para revelar o novo tema com clip-path circular, partindo do centro do SelectTrigger até o canto mais distante da viewport, em 550 ms. A lista fecha e o foco retorna ao acionador antes da captura. O estado next-themes é sincronizado com flushSync; a preferência continua persistida. Escolhas feitas durante a animação são consolidadas na última escolha e processadas ao concluir. Sem API, com movimento reduzido ou sem mudança efetiva de cores, a preferência muda imediatamente. Mudanças automáticas do sistema não iniciam animação.
 Logo oficial fornecida pelo usuário em PNG transparente, preservada sem recorte em apps/web/src/assets/logo-cifra.png. Favicon servido pela convenção Next app/icon.png. A marca permanece visível na faixa de ícones, sem o texto Equipe Cifra. No celular, painel de até 320 px, limitado pela viewport.
+
+## Operações de chamados — tarefa 3.6
+
+Operações reutilizam a transação e o advisory lock da identidade, revalidam setor/integrantes e comparam a versão antes de gravar. Estado, atribuições, histórico e outbox são atômicos; motivos internos ficam separados do histórico compartilhado. Remoção de vínculo/desativação atualiza atribuições na transação administrativa. Consultas derivam `needsReassignment` para IN_PROGRESS/REVIEW/DONE sem responsáveis. [Contrato e limites](tarefa-3.6-operacoes.md), incluindo contenção global e timeout de remoções em volume; sem migration ou serviço novo.

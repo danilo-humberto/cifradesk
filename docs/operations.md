@@ -61,7 +61,7 @@ docker compose exec tools pnpm audit --prod
 docker compose exec tools pnpm audit
 ```
 
-`pnpm check` executa lint, tipos e testes unitários; testes de integração são explicitamente pulados sem IDENTITY_TEST_DATABASE=1. Não chamar os testes de navegador contra o banco de desenvolvimento.
+`pnpm check` executa lint, tipos e testes unitários; integrações de identidade são puladas sem IDENTITY_TEST_DATABASE=1, abertura de chamados sem TICKETS_TEST_DATABASE=1 e consultas sem TICKET_QUERIES_TEST_DATABASE=1. Use os runners sintéticos correspondentes; não habilite essas flags contra o banco de trabalho. Não chamar os testes de navegador contra o banco de desenvolvimento.
 
 ## Testes isolados de identidade
 
@@ -87,6 +87,32 @@ Playwright cobre Chromium desktop e celular emulado, não Safari/Firefox. Relat�
 
 Dependências ficam em volumes Linux, evitando milhares de arquivos no compartilhamento Windows. Não executar binários dessas dependências com Node Windows. Mudanças em manifests, pacotes ou worker exigem rebuild; o override de desenvolvimento monta somente o código web.
 
+### Recargas contínuas no desenvolvimento
+
+O script `dev` do web usa `next dev --webpack`, opção oficial da [CLI do Next.js](https://nextjs.org/docs/app/api-reference/cli/next#next-dev-options). O build de produção continua com `next build`; nenhuma versão de dependência foi alterada por esta correção. `WATCHPACK_POLLING=true` no override local permite ao Webpack detectar edições no bind mount Windows.
+
+Em 16/11/2026, o estado acumulado do Turbopack 16.4.6 enviava `restart` para um chunk de entrada e `reloadPage` com `HMR hash mismatch` a cada reconexão. O ciclo foi reproduzido em `/login`, sem autenticação, pelo proxy e diretamente no web usando uma origem permitida. Não houve eventos de alteração em `src` durante a observação. Um container Turbopack limpo não reproduziu o ciclo; portanto, a evidência aponta para inconsistência do estado/cache de HMR, sem identificar o gatilho interno que a criou. Reiniciar o mesmo container não corrigiu o problema. Webpack é a medida de compatibilidade adotada para não reutilizar esse caminho no desenvolvimento; pode ter compilação inicial mais lenta.
+
+Para aplicar a alteração também à imagem existente, recriar somente o web, preservando serviços de dados e volumes:
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml up -d --no-deps --build --wait web
+```
+
+O smoke abaixo é uma exceção segura à restrição de E2E no banco de trabalho: usa contexto novo, abre somente `/login`, preenche um e-mail sintético sem enviar o formulário e não utiliza fixtures de identidade nem grava dados. Exige HMR conectado, uma única navegação e preservação do campo por 15 segundos. A flag impede sua execução em testes contra o build de produção.
+
+```powershell
+docker compose exec -e E2E_DEV_SERVER=1 tools pnpm exec playwright test tests/e2e/dev-hmr.spec.ts --workers=1
+```
+
+Evidência RED: o teste encontrou 132 mensagens `HMR hash mismatch` em 15 segundos, com trace em `.local/hmr-red`. GREEN: dois cenários Chromium (desktop/celular) passaram em 35 s, com HMR conectado, uma requisição de documento e campo preservado, conforme `.local/hmr-green-final`. O contador diferencia recarga de documento da atualização de histórico feita na hidratação do Next.js. Uma edição temporária de CSS foi aplicada via Fast Refresh com uma única requisição de documento e sem perder o campo; o conteúdo original foi restaurado. Após reiniciar o mesmo serviço e reutilizar seu cache, os dois cenários passaram novamente (46 s), conforme `.local/hmr-after-restart`. `docker exec cifradesk-local-web-1 pnpm check` aprovou lint, tipos e 75 unitários; 47 integrações foram ignoradas. A rota `/requests` compilou e retornou o redirecionamento 307 esperado para requisição sem sessão. A imagem de desenvolvimento foi reconstruída e o serviço local está executando Webpack. Build de produção, suíte E2E completa e navegadores além de Chromium não foram repetidos nesta correção de tooling.
+
+Minuta de entrega, não publicada:
+
+- **O QUE E POR QUE:** o comando de desenvolvimento seleciona explicitamente o Webpack já fornecido pelo Next.js, evitando o ciclo de HMR observado sem alterar o build de produção.
+- **ALERTA DO SÊNIOR:** a causa interna da inconsistência do Turbopack não foi determinada; trata-se de uma medida de compatibilidade, com possível aumento do tempo de compilação inicial. Smokes em repouso, edição real e reinício passaram; a compilação de produção não foi repetida porque seu comando e código não mudaram neste incremento.
+- **FOCO DE REVISÃO:** `apps/web/package.json` define o bundler de desenvolvimento; `tests/e2e/dev-hmr.spec.ts` detecta recargas involuntárias sem mascará-las com HMR desativado.
+
 Falha de envio administrativo preserva conta e orienta Reenviar convite. Recuperação pública sempre apresenta resposta genérica; `identity.reset_delivery_failed` no log indica falha SMTP sem expor destinatário/token. Verifique saúde do Mailpit. Não há fila de reenvio automático.
 
 ```powershell
@@ -106,8 +132,56 @@ Parar preserva volumes. Não usar `down -v`, limpeza global ou remoção de volu
 5. Recuperar senha: link só funciona uma vez e sessões antigas deixam de funcionar.
 6. Tentar remover o último administrador ativo: operação rejeitada.
 7. Escolher claro/escuro/automático e conferir persistência da conta. Usar teclado e viewport de 390px.
-8. Testar Sair e Encerrar todas as sessões. Confirmar que chamados/tarefas ainda aparecem como indisponíveis.
+8. Testar Sair e Encerrar todas as sessões. Confirmar redirecionamento ao login e ausência de conteúdo autenticado após sair.
 
 ## Limites
 
-SMTP de produção, TLS publicado, backup/restauração e carga continuam pendentes. Chamados, categorias, anexos funcionais e filas de negócio não foram antecipados. O lock transacional serializa mutações de identidade e login; medir contenção antes de ampliar a carga. A auditoria completa pode manter o advisory de tooling descrito nas evidências, sem equivaler a auditoria de runtime aprovada.
+SMTP de produção, TLS publicado, backup/restauração e carga continuam pendentes. A 3.4 implementa abertura via API e anexos privados localmente; a 3.5 acrescenta consultas autorizadas. A 3.6 acrescenta operações transacionais localmente; a [interface da 3.7](tarefa-3.7-interface.md) está implementada localmente, validada e revisada localmente, com commits locais autorizados. Categorias foram removidas do escopo. Filas de negócio não foram antecipadas. O lock transacional serializa mutações de identidade, login, reservas/criação e operações de chamados; medir contenção antes de ampliar a carga. A auditoria completa pode manter o advisory de tooling descrito nas evidências, sem equivaler a auditoria de runtime aprovada.
+
+## Anexos privados — tarefa 3.4
+
+Compose fornece ao web/tools `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY`. Não os imprimir. O bucket é criado explicitamente, depois de confirmar ambiente local e autorização:
+
+```powershell
+docker compose exec tools pnpm exec tsx scripts/storage-local.ts init
+```
+
+O comando exige SeaweedFS interno e bucket `cifradesk-local`, preserva bucket existente e confirma que acesso anônimo é negado. Nenhuma URL pública é entregue ao cliente. Rebuild do web é necessário para disponibilizar os endpoints novos; não foi aplicado nesta tarefa.
+
+Uploads falhos preservam chamados. Reservas e exclusões pendentes contam para o limite de 200 MiB até recuperação. Após 30 minutos, a limpeza repete DELETE, liberando capacidade somente quando confirmado. Cada execução processa até 100 registros; não está agendada:
+
+```powershell
+docker compose exec tools pnpm exec tsx scripts/storage-local.ts cleanup
+```
+
+Esse comando remove somente objetos de uploads incompletos/exclusões pendentes, não anexos disponíveis. Verificar ambiente e autorização antes de executar em dados de trabalho. A tarefa executou recuperação apenas em dados sintéticos.
+
+Para reproduzir a integração da 3.4, usar `node scripts/test-ticket-opening.mjs` no host com Docker e o container de ferramentas `cifradesk-etapa34-tools` iniciado a partir de `cifradesk-toolchain:local`, montando o workspace e os volumes `cifradesk-identidade-*`, conectado à rede `cifradesk-local_internal`. O runner cria banco/papel próprios e bucket sintético, aplica as migrations somente nesse banco e executa a suíte de chamados. Consome a configuração S3 local autorizada em memória, sem logs de segredos; preserva os recursos de teste para diagnóstico. `pnpm test:integration` continua selecionando somente identidade. [Evidências, contratos HTTP e limitações](tarefa-3.4-abertura.md).
+
+## Consultas de chamados — tarefa 3.5
+
+`node scripts/test-ticket-queries.mjs` usa o mesmo container de ferramentas e PostgreSQL local. Cria banco/papel exclusivos `tickets35_test_*`, aplica migrations somente nesse banco e executa 12 integrações, incluindo EXPLAIN de SQL representativo e volume sintético de 2.000 chamados com remoção de 250 atribuições. Não acessa S3 nem lê credenciais da aplicação; gera senha sintética em memória. Preserva o banco de teste para diagnóstico. [Rotas GET, paginação, acesso e validação manual](tarefa-3.5-consultas.md). Nenhum deploy é necessário para os testes; a aplicação já em execução não é atualizada por esse runner.
+
+## Operações de chamados — tarefa 3.6
+
+`node scripts/test-ticket-operations.mjs` cria banco/papel sintéticos `tickets36_test_*` no PostgreSQL local existente, aplica somente as migrations já existentes nesse banco e executa oito integrações. Usa `cifradesk-etapa34-tools`, sem credenciais da aplicação ou S3, e preserva a base para diagnóstico. Não atualiza a aplicação em execução. [API, eventos, controle de versão, testes e limites](tarefa-3.6-operacoes.md). Remoções administrativas podem atingir o timeout transacional de 15 segundos em volume: nesse caso ocorre rollback integral; medir carga antes de ampliar uso.
+
+## Regressão completa — tarefa 3.8
+
+Pré-requisitos: Docker iniciado; `cifradesk-etapa34-tools`, PostgreSQL e SeaweedFS locais da 3.4 disponíveis; configuração S3 local autorizada preservada. Identidade exige os serviços exclusivos `identity-postgres`/`identity-mailpit` do `compose.test.yaml`, arquivo sintético `.local/identity-test.env` e migrations aplicadas **somente em `identity_test`**. O runner agregado não prepara identidade sozinho. Gere a configuração ausente com `docker exec cifradesk-etapa34-tools node scripts/setup-identity-tests.mjs`; o script preserva arquivo existente. Confira nome do projeto Compose efetivo: `.env` pode definir `COMPOSE_PROJECT_NAME`, sobrepondo o nome do YAML. Não remova serviços órfãos nem volumes.
+
+O container de ferramentas precisa alcançar os serviços de identidade pela rede de testes, além da rede local dos runners de chamados. Nesta execução, os serviços de identidade ficaram em `cifradesk-local_default`; ferramentas foram conectadas a essa rede. Não copie credenciais nem configure URLs de produção. Antes de migrar identidade, confirme destino `identity-postgres`/`identity_test` e use `docker exec cifradesk-etapa34-tools node --env-file=.local/identity-test.env scripts/run-local.mjs pnpm db:migrate`.
+
+Depois do preparo autorizado, execute sequencialmente, da raiz:
+
+```powershell
+docker exec cifradesk-etapa34-tools pnpm db:generate
+docker exec cifradesk-etapa34-tools pnpm check
+node scripts/test-stage-three.mjs
+docker exec cifradesk-etapa34-tools pnpm build
+node scripts/test-ticket-interface.mjs --all
+```
+
+`node` no host apenas orquestra Docker; use um binário instalado por caminho explícito caso o gerenciador do host recuse a versão. Testes/compilação usam Node do container. `pnpm test:integration` isoladamente continua sendo apenas identidade; `test-stage-three.mjs` acrescenta explicitamente persistência SQL e todas as integrações de chamados, cada qual no seu banco sintético. Não executar testes pesados ou build simultaneamente nesse container.
+
+O E2E `--all` inclui fundação visual, identidade e chamados, em Chromium desktop/celular, sem retries. Inicia o standalone recém-compilado em `127.0.0.1:3317` dentro do container, banco exclusivo `tickets37_test_*`, segredo de sessão aleatório e SMTP `identity-mailpit:1025`. Não publica porta e encerra o servidor ao finalizar. Sem `--all`, seleciona somente chamados. Logs/traces/relatórios ficam em `.local`, ignorados pelo Git; contêm somente dados/sessões sintéticas. O upload de recuperação no navegador é simulado; o runner de abertura testa S3 real separadamente. [Resultados e limites da 3.8](etapa-3-execucao.md).

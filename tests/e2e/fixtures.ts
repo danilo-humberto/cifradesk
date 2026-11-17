@@ -7,7 +7,9 @@ export const syntheticPassword = 'Synthetic-e2e-123!';
 export const test = base.extend<{ identity: { id: string; email: string } }>({
   identity: [async ({ request, context, baseURL }, use) => {
     const target = new URL(process.env.DATABASE_URL ?? '');
-    if (process.env.IDENTITY_TEST_DATABASE !== '1' || target.hostname !== 'identity-postgres' || target.pathname !== '/identity_test')
+    const identityDatabase = process.env.IDENTITY_TEST_DATABASE === '1' && target.hostname === 'identity-postgres' && target.pathname === '/identity_test';
+    const ticketDatabase = process.env.TICKET_UI_TEST_DATABASE === '1' && target.hostname === 'postgres' && /^\/tickets37_test_[a-f0-9]+$/.test(target.pathname);
+    if (!identityDatabase && !ticketDatabase)
       throw new Error('E2E requires the isolated synthetic identity database.');
     const db = database();
     const user = await db.user.create({ data: { id: randomUUID(), name: 'E2E Admin', email: randomUUID() + '@example.test', isAdmin: true } });

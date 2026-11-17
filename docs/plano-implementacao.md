@@ -373,6 +373,8 @@ Fluxo atualizado por autorização: uma branch e um PR completo, com responsabil
 
 ### Etapa 3 — Chamados completos
 
+Decisões da tarefa 3.1 aprovadas: [tarefas, regras e critérios de aceite](etapa-3-planejamento.md). Para chamados, esse detalhamento substitui as propostas anteriores deste plano: sem categorias ou participantes, múltiplos responsáveis do setor, anexos na abertura e status ABERTA, PENDENTE, EM PROGRESSO, FEITO, REVISÃO, BLOCKED e FECHADA, com troca livre entre status. FECHADA aparece somente por filtro. A tarefa 3.2 possui schema, migration e contratos implementados e revisados localmente, sem publicação; a jornada completa da etapa 3 continua pendente. Consulte as [evidências e limitações da 3.2](tarefa-3.2-modelo-dados.md#implementação-e-verificação-local--13112026).
+
 - [ ] Implementar abertura, listagem paginada e detalhe.
 - [ ] Implementar atribuição, prioridade, prazo e transições de status.
 - [ ] Implementar Minhas solicitações e fila do setor.
@@ -381,6 +383,8 @@ Fluxo atualizado por autorização: uma branch e um PR completo, com responsabil
 - [ ] Testar regras com RED → GREEN → REFACTOR.
 
 **Aceite:** mesma conta solicita e atende; solicitante acompanha demanda em outro setor; conflitos não sobrescrevem alterações silenciosamente.
+
+A [tarefa 3.4](tarefa-3.4-abertura.md) acrescentou criação transacional, API e anexos privados, implementados/testados e registrados em commits locais autorizados, sem push/PR. A [3.5](tarefa-3.5-consultas.md) implementa consultas autorizadas, detalhe e histórico paginado em commits locais autorizados, sem push/PR. A [3.6](tarefa-3.6-operacoes.md) acrescenta operações e concorrência em commits locais autorizados, sem push/PR. A [interface da 3.7](tarefa-3.7-interface.md) está implementada localmente, validada e revisada localmente, com commits locais autorizados; a [validação da 3.8](etapa-3-execucao.md) está aprovada e revisada localmente, com commits locais autorizados, sem publicação. Auditoria após commits e integração da etapa inteira permanecem pendentes.
 
 ### Etapa 4 — Conversas e anexos
 

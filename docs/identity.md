@@ -66,4 +66,12 @@ Rotas de acesso ficam fora do layout protegido; URLs existentes da área de trab
 
 React Query tem instância por identidade; logout limpa cache e renova a navegação. Tema é salvo por conta, mantendo seleção local e animação existentes. Sem JavaScript, a navegação autenticada continua visível, mas formulários de identidade precisam de JavaScript e informam essa limitação.
 
-Componentes usam shadcn/ui; AlertDialog foi incorporado do registro new-york-v4 e teve somente aliases adaptados. Modern Web Guidance: labels visíveis, autocomplete correto, colagem de senha permitida, feedback anunciado e foco no resultado. Código de banco fica atrás de `server-only` na entrada Next.js.
+Componentes usam shadcn/ui; AlertDialog foi incorporado do registro new-york-v4 e teve somente aliases adaptados. As telas de acesso compartilham card responsivo, logo junto ao título e fonte local Manrope. Modern Web Guidance: labels visíveis, autocomplete correto e colagem de senha permitida. Sonner anuncia resultados sem mover o foco para a mensagem; erros também permanecem no formulário. Ativação, redefinição e solicitação de recuperação exibem confirmação persistente e link para entrar. Login e logout bem-sucedidos limpam toasts antes de navegar. Código de banco fica atrás de `server-only` na entrada Next.js.
+
+## Efeitos sobre chamados — tarefa 3.6
+
+Remover vínculo ou desativar conta remove suas atribuições nos chamados afetados, preserva outros responsáveis e o status, incrementa a versão e grava histórico interno/outbox na mesma transação administrativa. Desativação de setor com chamados não FECHADOS é bloqueada. Consulta histórica autorizada de setor inativo permanece disponível. [Regras, sinalização de reatribuição e limite transacional em volume](tarefa-3.6-operacoes.md).
+
+### Menu da conta na sidebar
+
+O layout autenticado passa somente nome, e-mail e imagem da conta para o rodapé. O menu shadcn oferece notificações, preferências e encerramento da sessão atual. O hook useLogout é compartilhado com Preferências, preservando os endpoints e a limpeza de cache/toasts após sucesso; falhas permitem nova tentativa. A opção de encerrar todas as sessões permanece em Preferências com confirmação. Os links continuam disponíveis sem JavaScript; a saída exige JavaScript. Evidências e limites desta alteração estão em base-visual.md, seção “Sidebar animada e menu da conta”.

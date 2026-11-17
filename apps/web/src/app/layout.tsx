@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 export const metadata: Metadata = { title: { default: 'CifraDesk', template: '%s | CifraDesk' }, description: 'Chamados e tarefas da equipe em um só lugar.', robots: { index: false, follow: false } };
@@ -16,6 +17,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         [data-slot="sidebar-container"] { display: flex; position: static; width: 100%; height: auto; }
       }
     `}</style></noscript>
-    <ThemeProvider>{children}</ThemeProvider>
+    <ThemeProvider>{children}<Toaster /></ThemeProvider>
   </body></html>;
 }

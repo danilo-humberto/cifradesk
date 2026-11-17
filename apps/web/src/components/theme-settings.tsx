@@ -5,6 +5,7 @@ import { useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { feedback } from '@/lib/feedback';
 
 const subscribe = () => () => {};
 export function ThemeSettings() {
@@ -24,7 +25,11 @@ export function ThemeSettings() {
         const response = await fetch('/api/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: value }) });
         if (!response.ok) throw new Error();
         setSaveError('');
-      } catch { setSaveError('Tema alterado neste navegador, mas não foi salvo na conta. Tente novamente.'); }
+        feedback.success('Preferência de tema salva.');
+      } catch {
+        const text = 'Tema alterado neste navegador, mas não foi salvo na conta. Tente novamente.';
+        setSaveError(text); feedback.error(text);
+      }
     });
     const target = value === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : value;
     const current = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -61,7 +66,7 @@ export function ThemeSettings() {
   }
   return (
     <div className="settings-row">
-      <div><Label htmlFor="theme">Tema da interface</Label><p id="theme-description">Escolha a aparência da sua conta.</p><p role="alert">{saveError}</p></div>
+      <div><Label htmlFor="theme">Tema da interface</Label><p id="theme-description">Escolha a aparência da sua conta.</p>{saveError && <p className="feedback-inline-error">{saveError}</p>}</div>
       <Select disabled={!mounted} value={mounted ? theme : 'system'} onValueChange={value => { pendingTheme.current = value; }}>
         <SelectTrigger ref={trigger} id="theme" aria-describedby="theme-description" className="w-full sm:w-[210px]"><SelectValue /></SelectTrigger>
         <SelectContent position="popper" className="data-[state=closed]:animate-none" onCloseAutoFocus={event => {
