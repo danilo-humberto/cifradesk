@@ -14,7 +14,7 @@ for (const migration of readdirSync(root).filter(value => /^\d/.test(value)).sor
   sql(name, `SET ROLE ${name};\n` + readFileSync(new URL(`${migration}/migration.sql`, root), 'utf8'));
 }
 // Vitest can silently ignore a missing filename when another filter matches.
-const runner = `import {spawnSync} from 'node:child_process'; import {accessSync} from 'node:fs'; const tests=['packages/infrastructure/src/ticket-messages.integration.test.ts','packages/infrastructure/src/message-attachments.integration.test.ts']; tests.forEach(file=>accessSync(file)); let input=''; for await(const chunk of process.stdin) input+=chunk; const env={...process.env,...JSON.parse(input)}; const r=spawnSync('pnpm',['exec','vitest','run','--no-file-parallelism',...tests],{env,stdio:'inherit'}); process.exit(r.status??1);`;
+const runner = `import {spawnSync} from 'node:child_process'; import {accessSync} from 'node:fs'; const tests=['packages/infrastructure/src/ticket-messages.integration.test.ts','packages/infrastructure/src/message-attachments.integration.test.ts','packages/infrastructure/src/message-mutations.integration.test.ts']; tests.forEach(file=>accessSync(file)); let input=''; for await(const chunk of process.stdin) input+=chunk; const env={...process.env,...JSON.parse(input)}; const r=spawnSync('pnpm',['exec','vitest','run','--no-file-parallelism',...tests],{env,stdio:'inherit'}); process.exit(r.status??1);`;
 console.log(`Synthetic database: ${name}`);
 const result = spawnSync('docker', ['exec', '-i', 'cifradesk-etapa34-tools', 'node', '--input-type=module', '-e', runner], {
   input: JSON.stringify({ DATABASE_URL: `postgresql://${name}:${password}@postgres:5432/${name}`, TICKET_MESSAGES_TEST_DATABASE: '1' }),

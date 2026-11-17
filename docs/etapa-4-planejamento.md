@@ -2,7 +2,7 @@
 
 Data: 17/11/2026.
 
-Status: tarefas 4.1–4.3 implementadas localmente em 17/11/2026; tarefas 4.4–4.6 não iniciadas. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; a 4.2 tem `cfb9ec6` e `d413e8a`. O commit local da 4.3 foi autorizado após a validação e está registrado no histórico da branch; push e PR permanecem não autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
+Status: tarefas 4.1–4.4 implementadas localmente em 17/11/2026; tarefas 4.5–4.6 não iniciadas. A 4.4 tem testes, build e revisão independente aprovados localmente. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; a 4.2 tem `cfb9ec6` e `d413e8a`; a 4.3 tem `5a946ec`. O commit local da 4.4 foi autorizado após a entrega; seu hash deve ser consultado no histórico da branch. Push e PR não foram autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
 
 ## Objetivo e decisões fechadas
 
@@ -56,14 +56,14 @@ Tarefas independentes, Kanban, notificações, lembretes e atualização em temp
 
 ### 4.4 — Editar, consultar versões e excluir
 
-- [ ] **Testes antes:** autor corrige texto, acrescenta/remove arquivo e consulta versões; outro integrante tenta alterar; autor perde acesso; duas sessões editam a mesma versão.
-- [ ] Exigir versão esperada para editar/excluir; retornar conflito sem sobrescrever silenciosamente.
-- [ ] Publicar edição e novos arquivos juntos. Se upload ou gravação falhar, conservar texto e anexos anteriores.
-- [ ] Rejeitar edição que deixe a mensagem sem texto e sem arquivos. Não permitir trocar sua visibilidade.
-- [ ] Registrar nova revisão apenas quando houver alteração efetiva; manter arquivos removidos indisponíveis e contabilizados.
-- [ ] Excluir logicamente, bloquear versões e downloads e manter marcador. Conteúdo retido não terá endpoint de consulta administrativa nesta etapa.
-- [ ] Testar disputa entre exclusão, edição e download, inclusive perda de permissão durante operações.
-- [ ] **Pronta quando:** testes de autoria, versões, concorrência e bloqueio de conteúdo passarem.
+- [x] **Testes antes:** autor corrige texto, acrescenta/remove arquivo e consulta versões; outro integrante tenta alterar; autor perde acesso; duas sessões editam a mesma versão.
+- [x] Exigir versão esperada para editar/excluir; retornar conflito sem sobrescrever silenciosamente.
+- [x] Publicar edição e novos arquivos juntos. Se upload ou gravação falhar, conservar texto e anexos anteriores.
+- [x] Rejeitar edição que deixe a mensagem sem texto e sem arquivos. Não permitir trocar sua visibilidade.
+- [x] Registrar nova revisão apenas quando houver alteração efetiva; manter arquivos removidos indisponíveis e contabilizados.
+- [x] Excluir logicamente, bloquear versões e downloads e manter marcador. Conteúdo retido não terá endpoint de consulta administrativa nesta etapa.
+- [x] Testar disputa entre exclusão, edição e download, inclusive perda de permissão durante operações.
+- [x] **Pronta quando:** testes de autoria, versões, concorrência e bloqueio de conteúdo passarem.
 
 ### 4.5 — Entregar a conversa na interface
 
@@ -97,7 +97,7 @@ Adicionar, sob `/api/tickets/{id}/messages`:
 | `DELETE /{messageId}` | Exclusão lógica com versão esperada |
 | `GET /{messageId}/revisions` | Versões paginadas, sob a mesma autorização da mensagem |
 
-Criação usa multipart com limites reais do corpo, reaproveitando o processamento existente; edição permanece planejada para a 4.4. Respostas nunca expõem chaves do armazenamento. Repetições continuam exigindo autorização atual. **Contrato implementado até a 4.3:** GET e POST com `markdown`, `visibility`, `submissionId` UUID obrigatório e até cinco `files` opcionais. Repetir o mesmo envio exige preservar identificador, texto, visibilidade, metadados, bytes e ordem dos arquivos. PATCH, DELETE e revisões ainda não existem.
+Criação e edição usam multipart com limites reais do corpo, reaproveitando o processamento existente. Respostas nunca expõem chaves do armazenamento. Repetições continuam exigindo autorização atual. **Contrato implementado até a 4.4:** GET e POST com `markdown`, `visibility`, `submissionId` UUID obrigatório e até cinco `files` opcionais. Repetir a criação exige preservar identificador, texto, visibilidade, metadados, bytes e ordem dos arquivos. PATCH exige `expectedVersion`, `markdown`, `retainedAttachmentIds` em array JSON e arquivos opcionais; DELETE exige JSON com `expectedVersion`. Revisões usam paginação autorizada. Edição não tem chave de envio: se a resposta se perder, consultar antes de reaplicar. [Contratos completos](architecture.md#edição-revisões-e-exclusão--tarefa-44).
 
 Referências centrais:
 
@@ -231,3 +231,55 @@ Mensagem sugerida, sem execução: `feat: publish message attachments atomically
 ### Registro do commit local da 4.3 — 17/11/2026
 
 Após a entrega, o usuário autorizou um commit local da 4.3, preservando as alterações preexistentes e vedando push e PR. Os 16 arquivos da tarefa formam uma unidade coerente de persistência, publicação, API, testes e documentação. O código foi comparado por SHA-256 com os 13 arquivos correspondentes no container validado, sem divergências; não houve nova alteração de comportamento. O artefato local de build está ignorado e não integra o commit. Os três documentos preexistentes da etapa 3/plano geral ficam fora do índice. Mensagem: `feat: publish message attachments atomically with idempotent retries`. O hash deve ser consultado no histórico Git, sem autorreferência neste documento.
+
+### Execução da 4.4 — 17/11/2026
+
+Pedido direto do usuário para iniciar a 4.4. Continuação na branch exclusiva `codex/etapa-4-conversas`, sobre `5a946ec`, conforme a entrega única da etapa 4. As três alterações preexistentes da etapa 3/plano geral permanecem preservadas, fora desta tarefa. Uso de `implement-issue` e revisão independente `review-delivery` após checks aprovados. Não houve nova migration, dependência ou alteração no banco da aplicação.
+
+Fluxo implementado: versão esperada + texto/composição final → conferir autoria/acesso e reservar quota → upload fora da transação → conferir novamente e publicar edição, revisão, anexos/remoções, atividade e evento atomicamente. Exclusão incrementa versão e mantém marcador; versões/arquivos retidos ficam sem consulta após exclusão. Revisões preservam nomes, calculando disponibilidade pelo estado atual. Reserva provisória usa `messageId` existente e estados de anexo já disponíveis. [Detalhes e contratos](architecture.md#edição-revisões-e-exclusão--tarefa-44).
+
+Evidências executadas:
+
+| Verificação | Resultado |
+| --- | --- |
+| `node scripts/test-ticket-messages.mjs`, antes da implementação | RED em base sintética preparada: 14 testes novos falharam por operações ausentes (`editTicketMessage is not a function` e equivalentes); 20 regressões passaram |
+| Teste HTTP novo, antes da implementação | RED: módulo das rotas ainda inexistente; nenhum caso HTTP executado nesta primeira tentativa |
+| `node scripts/test-ticket-messages.mjs`, após implementação | GREEN: 34 integrações, sendo 14 novas, 9 de isolamento e 11 de anexos/idempotência; sem testes pulados |
+| Testes HTTP de criação/mutações e corpo | 19 aprovados, incluindo 7 novos; versão, campos forjados/repetidos, limites reais do corpo, sessão, origem, conflitos e `no-store` |
+| `docker exec cifradesk-etapa34-tools pnpm check` | Lint sem avisos, tipos aprovados, 101 testes aprovados e 84 integrações puladas por variável habilitadora ausente; as 34 de conversas foram executadas pelo runner específico acima |
+| `docker exec cifradesk-etapa34-tools pnpm build` | Web e worker compilados; rotas de mensagem e revisões presentes no build |
+| `node scripts/test-ticket-opening.mjs` | 12 integrações aprovadas, incluindo armazenamento SeaweedFS privado real local, em banco/bucket sintéticos |
+| `node scripts/test-ticket-queries.mjs` | 12 integrações aprovadas, incluindo isolamento, paginação e volume sintético |
+| `node scripts/test-ticket-operations.mjs` | 8 integrações aprovadas, incluindo conflitos e operações transacionais |
+| Integridade e diff | 9 arquivos de código/testes/runner idênticos por SHA-256 à cópia validada no container; `git diff --check` sem erros |
+
+O atalho Node do Windows não encontrou a versão exigida e não executou o primeiro runner; essa falha não conta como RED. O runner foi então acionado pelo Node do aplicativo, apenas para orquestrar Docker. Testes/compilação usaram Node 24.22.3 do container, PostgreSQL `postgres` em bases `messages42_test_*` e papéis restritos exclusivos; nenhuma credencial foi impressa. Aviso preexistente de consultas concorrentes do cliente `pg`, sem falha.
+
+Cenários cobertos: edição com adição/remoção, mensagem só com arquivos, ausência de mudança, visibilidade fixa, IDs de outra mensagem/chamado e arquivo já removido, limites de arquivos/quota incluindo bytes retidos, conflito entre duas edições, exclusão durante upload, remoção/exclusão durante download, transferência e perda de vínculo/sessão durante upload, setor inativo, chamado FECHADO, expiração/limpeza, falha parcial de upload e rollback por falha de evento em edição/exclusão. Histórico/eventos internos não copiam texto/nomes; o solicitante não recebe IDs/contagens internos.
+
+Autoauditoria do diff completo da tarefa e revisão independente somente leitura pelo `review-agent`, em contexto limpo: **APROVADO PARA ENTREGA**, sem achados concretos de correção. A revisão foi estática, sem reexecutar os testes/build; o executor verificou os resultados acima. Nenhuma revisão autoriza commit/push/PR/merge/deploy. Os três documentos preexistentes mantêm o diff anterior de 29 inserções e 12 remoções, fora da tarefa.
+
+Documentação atualizada nesta tarefa: este planejamento, `architecture.md` e `operations.md`, com contratos efetivos, retenção/quota, recuperação e procedimento de reprodução. Interface/E2E são da 4.5; a validação integral da etapa é da 4.6. As integrações de identidade e persistência da 4.1 não foram reexecutadas nesta tarefa. Armazenamento dos testes novos é em memória; S3 real foi exercitado somente pela regressão da 3.4. Sem ensaio de carga ou corte real de conexão HTTP/S3. Limitações herdadas de multipart em memória, lock global, limpeza operacional e PUT remoto tardio permanecem.
+
+#### Comentário curto pronto para o Linear — não publicado
+
+**O QUE E POR QUE**
+
+Edição/exclusão exigem autoria, acesso atual e versão esperada; revisões preservam o conteúdo histórico autorizado. Reserva e publicação reaproveitam o modelo/limpeza existentes e conservam a versão anterior em falhas, sem nova migration.
+
+**ALERTA DO SÊNIOR**
+
+Sem achados concretos de correção na revisão independente. Arquivos removidos/excluídos continuam na quota; uploads usam memória e o lock global não foi ensaiado sob carga. Testes novos usam armazenamento em memória; UI permanece na 4.5.
+
+**FOCO DE REVISÃO**
+
+- `packages/infrastructure/src/ticket-messages.ts`: autoria, acesso atual, conflitos, publicação/remoção e revisões.
+- `apps/web/src/lib/server/tickets.ts`: limites e contrato multipart da edição.
+
+Pedágio didático: versão esperada impede sobrescrita silenciosa; publicação transacional confirma todos os registros juntos; snapshot histórico não concede download. Caça aos erros silenciosos: exclusão/remoção durante download ou edição deve bloquear conteúdo/publicação; os testes alteram o estado durante o IO e verificam 404/409 e preservação da versão vencedora.
+
+Mensagem sugerida, sem execução: `feat: add versioned message edits revisions and soft deletion`.
+
+### Registro do commit local da 4.4 — 17/11/2026
+
+Após a entrega, o usuário autorizou o commit local da 4.4, preservando alterações preexistentes e vedando push e PR. Os 12 arquivos da tarefa compõem uma unidade de contratos, serviços, rotas, testes, runner e documentação. Antes do commit, os nove arquivos de código/testes/runner foram comparados por SHA-256 com a cópia validada no container, sem divergências; não houve nova mudança de comportamento nem reexecução das suítes. Apenas este planejamento recebeu o registro da autorização. Artefatos de build estão ignorados e não integram o commit. Os três documentos preexistentes da etapa 3/plano geral ficam fora do índice, com integridade conferida por SHA-256. Mensagem autorizada: `feat: add versioned message edits revisions and soft deletion`. O hash deve ser consultado no histórico Git, sem autorreferência neste documento.
