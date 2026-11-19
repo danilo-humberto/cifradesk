@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { database } from '@cifradesk/database';
+import { database, type Prisma } from '@cifradesk/database';
 import { DomainError } from '@cifradesk/core';
 import { ticketUploadInput } from '@cifradesk/contracts/tickets';
 import { ticketActor, ticketWrite, type TicketActor, type TicketTx } from './tickets';
@@ -21,7 +21,7 @@ async function access(tx: TicketTx, actor: TicketActor, ticketId: string, upload
 export async function assertAttachmentAccess(actor: TicketActor, ticketId: string) {
   await ticketWrite(tx => access(tx, actor, ticketId, true));
 }
-async function discard(ids: string[], storage: AttachmentStorage, release = false) {
+export async function discardAttachments(ids: string[], storage: AttachmentStorage, release = false) {
   // Persist intent before external deletion, so a process crash remains recoverable.
   await database().ticketAttachment.updateMany({ where: { id: { in: ids }, status: { in: ['PENDING_UPLOAD', 'PENDING_DELETION', 'FAILED'] } }, data: { status: 'PENDING_DELETION' } });
   const rows = await database().ticketAttachment.findMany({ where: { id: { in: ids }, status: 'PENDING_DELETION' }, take: 100 });
@@ -57,14 +57,14 @@ export async function uploadAttachments(actor: TicketActor, ticketId: string, fi
       return tx.ticketAttachment.findMany({ where: { id: { in: rows.map(r => r.id) } }, select: publicAttachment, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 5 });
     });
   } catch {
-    await discard(rows.map(r => r.id), storage);
+    await discardAttachments(rows.map(r => r.id), storage);
     throw new DomainError(503, 'O chamado foi preservado, mas os anexos não foram enviados. Tente novamente.');
   }
 }
 export async function downloadAttachment(actor: TicketActor, ticketId: string, attachmentId: string, storage: AttachmentStorage = attachmentStorage()) {
   const read = () => ticketWrite(async tx => {
     await access(tx, actor, ticketId);
-    const row = await tx.ticketAttachment.findFirst({ where: { id: attachmentId, ticketId, status: 'AVAILABLE' } });
+    const row = await tx.ticketAttachment.findFirst({ where: { id: attachmentId, ticketId, status: 'AVAILABLE', ...visibleAttachments(actor) } });
     if (!row) throw new DomainError(404, 'Anexo não encontrado.');
     return row;
   });
@@ -83,6 +83,18 @@ export async function cleanupAttachments(storage: AttachmentStorage = attachment
     await tx.ticketAttachment.updateMany({ where: { id: { in: expired.map(r => r.id) } }, data: { status: 'PENDING_DELETION' } });
     return expired;
   });
-  await discard(rows.map(r => r.id), storage, true);
+  await discardAttachments(rows.map(r => r.id), storage, true);
   return { processed: rows.length };
+}
+
+// Apply before pagination/count and on both sides of storage IO. Reservations
+// with no published message are never opening attachments.
+export function visibleAttachments(actor: TicketActor): Prisma.TicketAttachmentWhereInput {
+  return { removedAt: null, OR: [
+    { messageId: null, submissionId: null },
+    { status: 'AVAILABLE', message: { is: { deletedAt: null, OR: [
+      { visibility: 'SHARED' },
+      { ticket: { department: { memberships: { some: { userId: actor.id } } } } }
+    ] } } }
+  ] };
 }

@@ -81,6 +81,38 @@ export const ticketActivityResponse = z.object({
 const pageResponse = { page: z.number().int().positive(), pageSize: z.number().int().min(1).max(100), total: z.number().int().nonnegative() };
 export const ticketListResponse = z.object({ ...pageResponse, items: z.array(ticketResponse) }).strict();
 export const ticketActivityListResponse = z.object({ ...pageResponse, items: z.array(ticketActivityResponse) }).strict();
+// Preserve Markdown whitespace (indentation can be meaningful).
+// The service validates empty text together with the actual files.
+export const createTicketMessageInput = z.object({
+  markdown: z.string().max(10000),
+  visibility: activityVisibility,
+  submissionId: uuid
+}).strict();
+export const editTicketMessageInput = z.object({
+  expectedVersion: version,
+  markdown: z.string().max(10000),
+  retainedAttachmentIds: z.array(uuid).max(5)
+}).strict().refine(value => new Set(value.retainedAttachmentIds).size === value.retainedAttachmentIds.length, 'Anexo repetido.');
+export const deleteTicketMessageInput = z.object({ expectedVersion: version }).strict();
+export const ticketMessagePageInput = ticketPageInput.extend({ pageSize: z.coerce.number().int().min(1).max(100).default(20) });
+export const ticketMessageResponse = z.object({
+  id: uuid, ticketId: uuid, author: person, markdown: z.string().nullable(),
+  visibility: activityVisibility, version, createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+  deletedAt: z.iso.datetime().nullable(),
+  canEdit: z.boolean(), canDelete: z.boolean(), canViewRevisions: z.boolean(),
+  attachments: z.array(z.object({ id: uuid, originalName: z.string(), mimeType: z.string(), size: z.number().int(), status: z.literal('AVAILABLE') }).strict()).max(5)
+}).strict();
+export const ticketMessageListResponse = z.object({
+  ...pageResponse, items: z.array(ticketMessageResponse), canSend: z.boolean(), canSendInternal: z.boolean()
+}).strict();
+export const ticketMessageRevisionSnapshot = z.array(z.object({ id: uuid, originalName: z.string() }).strict()).max(5);
+export const ticketMessageRevisionListResponse = z.object({
+  ...pageResponse,
+  items: z.array(z.object({
+    id: uuid, messageId: uuid, version, markdown: z.string(), createdAt: z.iso.datetime(),
+    attachments: z.array(z.object({ id: uuid, originalName: z.string(), available: z.boolean() }).strict()).max(5)
+  }).strict())
+}).strict();
 export type CreateTicketInput = z.infer<typeof createTicketInput>;
 export type TicketResponse = z.infer<typeof ticketResponse>;
 export type TicketStatus = z.infer<typeof ticketStatus>;

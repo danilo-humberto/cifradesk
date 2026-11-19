@@ -166,7 +166,62 @@ Para reproduzir a integração da 3.4, usar `node scripts/test-ticket-opening.mj
 
 `node scripts/test-ticket-operations.mjs` cria banco/papel sintéticos `tickets36_test_*` no PostgreSQL local existente, aplica somente as migrations já existentes nesse banco e executa oito integrações. Usa `cifradesk-etapa34-tools`, sem credenciais da aplicação ou S3, e preserva a base para diagnóstico. Não atualiza a aplicação em execução. [API, eventos, controle de versão, testes e limites](tarefa-3.6-operacoes.md). Remoções administrativas podem atingir o timeout transacional de 15 segundos em volume: nesse caso ocorre rollback integral; medir carga antes de ampliar uso.
 
+## Persistência de conversas — tarefa 4.1
+
+Executar `node scripts/test-message-persistence.mjs` no host com Docker e os containers locais `cifradesk-local-postgres-1` e `cifradesk-etapa34-tools` disponíveis. O container de ferramentas deve conter o código atual e o cliente gerado por `pnpm db:generate`; se o workspace tiver sido copiado em vez de montado, sincronizar os arquivos antes. O Node do host apenas orquestra Docker; compilação e integrações usam Node 24.22.3 do container.
+
+O runner cria bancos e papéis próprios `messages41_test_*`, sem superusuário, criação de bancos ou criação de papéis para a conexão de testes. A conexão administrativa local é usada somente para preparar esses recursos; migrations e verificações executam sob o papel sintético. Não lê `.env`, credenciais de aplicação nem S3. Os bancos ficam preservados para diagnóstico, sem remoção automática. Nenhuma migration é aplicada ao banco da aplicação.
+
+São executados dois cenários: base vazia e atualização com registros sintéticos inseridos antes da migration de mensagens. O runner verifica preservação dos anexos, constraints, snapshots imutáveis, exclusão lógica, índices e equivalência entre schema Prisma e banco migrado. Em cada cenário, seleciona explicitamente as três integrações Prisma, incluindo download legado com armazenamento em memória e rollback. `--upgrade-only` executa somente a atualização. `pnpm check` e `pnpm test:integration` sozinhos não executam esses cenários. [Resultados e limites da 4.1](etapa-4-planejamento.md#execução-da-41--17112026).
+
+Criar novas bases pelas migrations, não por `db push`: checks e trigger de imutabilidade não são representados integralmente no Prisma. Publicação, proteção dos caminhos antigos, edição, revisões e exclusão lógica estão implementadas até a 4.4, que reutiliza as migrations existentes.
+
+## Conversas com isolamento — tarefa 4.2
+
+Executar `node scripts/test-ticket-messages.mjs` no host. Requer PostgreSQL local e `cifradesk-etapa34-tools` com código atualizado e cliente Prisma da 4.3 gerado. O container de ferramentas não monta o workspace nesta execução: sincronizar os arquivos alterados antes dos testes. O runner cria uma base `messages42_test_*` e papel proprietário restrito, aplica as migrations existentes sob esse papel e seleciona explicitamente as nove integrações de conversas, onze de anexos/idempotência e quatorze de edição/exclusão/revisões. Verifica presença dos três arquivos de testes para evitar omissão silenciosa. A suíte verifica destino `postgres`, prefixo do banco, usuário correspondente e ausência de privilégios de superusuário/criação de bancos/papéis antes dos dados sintéticos. Credencial aleatória passa por stdin; não lê `.env`. Bancos sintéticos são preservados para diagnóstico; não há migration no banco da aplicação.
+
+Validar também `docker exec cifradesk-etapa34-tools pnpm check` e `docker exec cifradesk-etapa34-tools pnpm build`. O check inclui os oito testes HTTP de criação/listagem e sete de mutações/revisões, mas pula integrações sem a variável habilitadora: o runner específico é obrigatório. Regressões relacionadas: `node scripts/test-ticket-opening.mjs`, `node scripts/test-ticket-queries.mjs` e `node scripts/test-ticket-operations.mjs`. O primeiro usa configuração S3 local em memória e bucket sintético privado; não imprime credenciais. Executar suítes de integração sequencialmente no container compartilhado. O Node do host somente orquestra Docker; testes e compilação usam o runtime do container.
+
+Conferência manual em ambiente sintético preparado: autenticar solicitante e integrante; enviar multipart com `markdown`, `visibility`, `submissionId` UUID e `files` opcionais à rota `/api/tickets/{id}/messages`; comparar GET e histórico com ambas as contas. Nota interna não pode aparecer nem na contagem do solicitante. Transferir o chamado e confirmar acesso apenas pelo novo setor; desativar setor após fechar seus chamados e conferir leitura sem envio. Terceiro e administrador sem vínculo recebem 404. Essa conferência manual não foi executada na 4.3; os cenários correspondentes foram cobertos pelos testes. A interface foi acrescentada na 4.5, abaixo. [Contrato e limites](architecture.md#publicação-conjunta-e-idempotência--tarefa-43), [evidências](etapa-4-planejamento.md#execução-da-43--17112026).
+
+### Reenvio e recuperação — tarefa 4.3
+
+- Repetir exatamente o mesmo conteúdo e `submissionId` quando houver perda de resposta. Envio concluído retorna a mesma mensagem; chave reutilizada com conteúdo diferente ou tentativa ainda em andamento retorna 409. Repetições exigem acesso e sessão atuais.
+- Não liberar quota manualmente nem tornar reservas `AVAILABLE`: publicação pertence à transação do serviço. Falhas ficam invisíveis; objetos pendentes continuam consumindo quota até a limpeza confirmar remoção após a janela de 30 minutos. Executar o procedimento operacional de limpeza existente em lotes de até 100, sem endpoint público.
+- Para conferir isolamento, tentar o ID de um arquivo interno na rota antiga `/api/tickets/{id}/attachments/{attachmentId}` como solicitante sem vínculo: deve retornar 404. A listagem geral também deve excluir arquivo e contagem. Removidos e mensagens excluídas permanecem bloqueados mesmo com vínculo.
+- Os testes simulam falha parcial, expiração e revogação durante IO com armazenamento em memória; a regressão da etapa 3 usa SeaweedFS real local. Não simulam cancelamento remoto tardio real nem substituem o E2E da interface futura. Limitação herdada: escrita remota que termine depois da exclusão final pode deixar objeto órfão se o processo cair; não há garantia de cancelamento remoto.
+
+### Edição, exclusão e retenção — tarefa 4.4
+
+- PATCH multipart exige `expectedVersion`, `markdown` e `retainedAttachmentIds` em array JSON, mais `files` opcionais. DELETE exige JSON com `expectedVersion`. Consultar a versão atual antes de mutações; 409 exige recarregar e conciliar a alteração. Se a resposta se perder, consultar primeiro: edição não tem `submissionId` e não deve ser reaplicada com uma versão nova automaticamente.
+- Somente autor com acesso atual altera; a visibilidade é fixa. Remoção de vínculo/transferência pode retirar inclusive do autor o acesso a notas internas. Capacidades retornadas ajudam a interface, mas não substituem autorização no servidor.
+- Remover arquivo ou excluir mensagem não libera quota nem apaga bytes. Não encaminhar esses arquivos `AVAILABLE` à limpeza: ela trata somente uploads provisórios/falhos. Revisões preservam nomes de arquivos removidos com `available: false`; exclusão bloqueia a própria consulta de versões e todos os downloads. Não existe endpoint administrativo para ler conteúdo retido.
+- Reservas de edição apontam à mensagem existente, permanecendo invisíveis até a publicação. Falha/concorrência encaminha apenas as reservas da própria tentativa à limpeza existente; aguardar janela de 30 minutos e processar até 100 por chamada. Não promover reservas manualmente nem apagar arquivos de outras tentativas.
+- Conferência manual futura: abrir duas sessões do autor na mesma versão; editar em uma e tentar salvar/excluir na outra (409). Remover um arquivo e consultar a revisão inicial (nome preservado, indisponível); excluir a mensagem e tentar revisões/download por URL (404). Estes cenários têm testes automatizados; não houve conferência manual/UI na 4.4. [Contrato implementado](architecture.md#edição-revisões-e-exclusão--tarefa-44).
+
+## Interface de conversa — tarefa 4.5
+
+No detalhe, usar “Conversa” para mensagens compartilhadas/notas internas e “Histórico operacional” para atividades. Somente integrantes atuais do setor responsável podem escolher e publicar novas notas internas. Revisões abrem em diálogo paginado; arquivo removido aparece como “Indisponível”. Setor desativado conserva leitura; FECHADO continua recebendo mensagens. “Atualizar chamado” busca dados novos sem apagar rascunhos em memória. A página não recebe atualizações em tempo real.
+
+Falha de criação: conservar a página e usar “Tentar o mesmo envio”, que mantém identificador e arquivos. “Revisar rascunho” pede confirmar que o próximo envio será novo; conferir a conversa antes para evitar duplicação. Conflito/falha incerta de edição: “Conferir versão atual”, comparar a publicação e só então “Usar versão atual como base”, ou cancelar. Não reaplicar automaticamente; se os novos arquivos já estiverem publicados, removê-los da seleção antes de salvar outra vez. Exclusão com erro exige conferir a conversa e abrir nova confirmação. Recarregar a página ou encerrar sessão perde o rascunho; não há salvamento local automático. Remover arquivo/excluir mensagem não libera quota.
+
+Se perder vínculo mantendo acesso como solicitante, notas publicadas deixam de aparecer. Uma edição interna fica oculta; “Encerrar edição” libera ações e paginação. Um rascunho interno novo não é compartilhado automaticamente: o envio fica bloqueado até revisar o conteúdo e escolher explicitamente “Mensagem compartilhada”. Setor desativado também oferece “Encerrar edição”, mantendo somente leitura.
+
+Para reproduzir a suíte de interface, sincronizar os arquivos modificados com `cifradesk-etapa34-tools` (sem bind mount), instalar o lock atualizado com `pnpm install --frozen-lockfile` e compilar antes:
+
+```powershell
+docker exec cifradesk-etapa34-tools pnpm check
+docker exec cifradesk-etapa34-tools pnpm build
+node scripts/test-ticket-interface.mjs --messages
+```
+
+O Node do host apenas orquestra Docker; usar o binário do aplicativo por caminho absoluto se o atalho do gerenciador não localizar a versão exigida. `--messages` seleciona explicitamente `ticket-messages.spec.ts`, desktop e celular Chromium, um worker e zero retries. `--grep "envia Markdown"` permite reproduzir um roteiro. Usa base/papel sintéticos `tickets37_test_*`, aplica migrations somente nessa base e inicia standalone em `127.0.0.1:3317` dentro do container. Reutiliza exclusivamente credencial S3 local de `.local/s3.json`, em memória/stdin, criando bucket privado exclusivo `messages45-test-*` no SeaweedFS local; verifica 403 anônimo antes do servidor. Não imprime credenciais nem lê `.env` da aplicação. Preserva banco/bucket para diagnóstico e encerra o servidor ao finalizar.
+
+`--all` agora inclui a conversa e também prepara esse bucket; sem seleção continua executando somente `tickets.spec.ts`. Não executar simultaneamente com outras suítes/build no container. Logs, relatórios e imagens `conversation-{chromium|mobile}-{light|dark}.png` ficam em `.local` ignorado no Git; copiar imagens do container para inspecionar no host. Casos de upload/download usam S3 real local. As falhas de conexão/resposta são injetadas pelo Playwright; não representam corte real de rede. [Execução e limites da 4.5](etapa-4-planejamento.md#execução-da-45--17112026).
+
 ## Regressão completa — tarefa 3.8
+
+O runner da etapa 3 abaixo não inclui conversas. Para a persistência da 4.1, usar também o procedimento acima.
 
 Pré-requisitos: Docker iniciado; `cifradesk-etapa34-tools`, PostgreSQL e SeaweedFS locais da 3.4 disponíveis; configuração S3 local autorizada preservada. Identidade exige os serviços exclusivos `identity-postgres`/`identity-mailpit` do `compose.test.yaml`, arquivo sintético `.local/identity-test.env` e migrations aplicadas **somente em `identity_test`**. O runner agregado não prepara identidade sozinho. Gere a configuração ausente com `docker exec cifradesk-etapa34-tools node scripts/setup-identity-tests.mjs`; o script preserva arquivo existente. Confira nome do projeto Compose efetivo: `.env` pode definir `COMPOSE_PROJECT_NAME`, sobrepondo o nome do YAML. Não remova serviços órfãos nem volumes.
 
