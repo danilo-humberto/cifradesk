@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { test, expect, syntheticPassword } from './fixtures';
+import { test, expect, syntheticPassword, selectDepartmentOption } from './fixtures';
 import { database } from '../../packages/database/src';
 import { createTicket } from '../../packages/infrastructure/src/tickets';
 import { acceptInvitation } from '../../packages/infrastructure/src/identity';
@@ -26,8 +26,7 @@ test('abertura para outra pessoa, departamento único, detalhe e lista', async (
   await expect(page.getByRole('button', { name: 'É para mim' })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByLabel('Informe seu nome completo')).toBeEditable();
   await page.getByLabel('Informe seu nome completo').fill('Ágata de Sá');
-  await page.getByRole('combobox', { name: 'De qual setor deseja o atendimento?' }).click();
-  await page.getByRole('option', { name: origin.name, exact: true }).click();
+  await selectDepartmentOption(page, 'De qual setor deseja o atendimento?', origin.name);
   await page.getByRole('button', { name: 'Abrir Chamado', exact: true }).click();
   await expect(page.getByRole('heading', { name: /CH-.*Atendimento de teste/ })).toBeVisible();
   await expect(page.getByText('Ágata de Sá', { exact: true })).toBeVisible();
@@ -116,8 +115,7 @@ test('erro de anexos permite recuperação sem duplicar abertura', async ({ page
   await page.goto('/requests/new');
   await page.getByLabel('Informe o que deseja?').fill('Teste com anexo');
   await page.getByLabel('Descreva sua requisição').fill('Descrição sintética do anexo');
-  await page.getByRole('combobox', { name: 'De qual setor deseja o atendimento?' }).click();
-  await page.getByRole('option', { name: sector.name }).click();
+  await selectDepartmentOption(page, 'De qual setor deseja o atendimento?', sector.name);
   await page.getByLabel('Anexe algum arquivo').setInputFiles({ name: 'teste.txt', mimeType: 'text/plain', buffer: Buffer.from('conteúdo sintético') });
   await expect(page.getByRole('list', { name: 'Arquivos selecionados' })).toContainText('teste.txt');
   await page.getByRole('button', { name: 'Remover teste.txt' }).click();

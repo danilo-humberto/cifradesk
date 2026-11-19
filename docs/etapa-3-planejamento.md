@@ -1,6 +1,8 @@
 # Etapa 3 — Chamados completos: tarefas e critérios de aceite
 
-Data: 13/11/2026. **Status: 3.1 concluída no planejamento; 3.2 e 3.4 registradas em commits locais autorizados, sem push/PR. 3.5 registrada em commits locais autorizados; 3.6 implementada, validada e revisada localmente, com commits locais autorizados; 3.7 implementada, validada e revisada localmente, com commits locais autorizados; 3.8 validada e revisada localmente, com commits locais autorizados; evidências em [execução da 3.8](etapa-3-execucao.md).** [Evidências e limitações da 3.5](tarefa-3.5-consultas.md).
+Planejamento original: 13/11/2026. **Status atualizado em 17/11/2026: etapa 3 encerrada no escopo local e integrada à main pelo [PR #3](https://github.com/danilo-humberto/cifradesk/pull/3), merge `7cc970e`.** Tarefas 3.1, 3.2 e 3.4–3.8 concluídas; 3.3 retirada do escopo. Ver [registro de encerramento e limites](etapa-3-execucao.md#encerramento-da-etapa-3--17112026).
+
+As seções abaixo preservam o contexto, as decisões e as autorizações do planejamento e da execução. Menções a commits locais, ausência de publicação ou integração pendente descrevem aquele momento e são superadas pelo encerramento acima. O planejamento detalhado da etapa 4 não foi iniciado.
 
 ## Por que esta é a próxima etapa
 
@@ -177,7 +179,7 @@ Políticas de acesso autorizadas explicitamente pelo usuário em 13/11/2026. [Co
 
 ### 3.8 — Validar, revisar e documentar a entrega
 
-**Dependências:** todas as anteriores. **Entrega:** [evidências reais, revisão e limitações da 3.8](etapa-3-execucao.md). Validação local aprovada; auditoria após commits e publicação permanecem pendentes.
+**Dependências:** todas as anteriores. **Entrega:** [evidências reais, revisão e limitações da 3.8](etapa-3-execucao.md). Validação local e revisão para integração registradas no relatório final; entrega integrada pelo PR #3 em 17/11/2026.
 
 **Critérios de aceite:**
 
@@ -187,7 +189,7 @@ Políticas de acesso autorizadas explicitamente pelo usuário em 13/11/2026. [Co
 - [x] Registrar comandos, resultados, falhas preexistentes e correções; revalidar regressões de identidade. Testes não executados permanecem pendentes.
 - [x] Atualizar plano, arquitetura, contratos/permissões e operação conforme o comportamento entregue, ao concluir cada responsabilidade afetada.
 - [x] Revisão independente de autorização, transações e concorrência, sem edição pelo revisor; corrigir e reavaliar bloqueios reais.
-- [ ] Conferir diff completo e histórico contra a base remota atual antes do único PR; integração à main e conclusão da etapa são registradas somente quando ocorrerem.
+- [x] Revisão do conjunto para integração registrada no relatório final e no PR #3; integração à main confirmada em `7cc970e`. A conferência de encerramento verificou igualdade entre as bases local/remota e ausência de diferenças de conteúdo em relação a `54b1332`, sem repetir a auditoria integral nem as suítes.
 
 ## Execução, risco e aprovações
 

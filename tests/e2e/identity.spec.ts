@@ -79,7 +79,19 @@ test('setores, integrantes e confirmação acessível', async ({ page, identity,
   await expect(page.getByRole('region', { name: /Notificações/ }).getByText('Alteração salva.', { exact: true })).toBeVisible();
   const department = await database().department.findFirstOrThrow({ where: { name } });
   expect((await request.post('/api/admin/departments/' + department.id + '/members', { headers: { Origin: baseURL! }, data: { userId: identity.id } })).status()).toBe(200);
-  await page.getByRole('button', { name: 'Selecionar setor ' + name, exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const pagination = page.getByRole('navigation', { name: 'Paginação dos setores' });
+  const select = page.getByRole('button', { name: 'Selecionar setor ' + name, exact: true });
+  await expect(pagination).toHaveAttribute('aria-busy', 'false');
+  while (await select.count() === 0) {
+    const next = pagination.getByRole('button', { name: 'Próxima', exact: true });
+    await expect(next).toBeEnabled();
+    const loaded = page.waitForResponse(response => new URL(response.url()).pathname === '/api/admin/departments' && response.request().method() === 'GET' && response.status() === 200);
+    await next.click();
+    await loaded;
+    await expect(pagination).toHaveAttribute('aria-busy', 'false');
+  }
+  await select.click();
   const card = page.locator('[data-slot="card"]').filter({ has: page.locator('input[value="' + name + '"]') });
   await card.getByRole('button', { name: 'Integrantes', exact: true }).click();
   await expect(page.getByText(identity.email, { exact: false }).last()).toBeVisible();

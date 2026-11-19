@@ -2,7 +2,7 @@
 
 Data: 12/11/2026.
 
-Status: etapas 0 e 1 concluídas. A fundação está registrada no commit a27668e; o relatório da etapa 1 preserva seu estado histórico anterior ao commit. Etapa 2 implementada e validada localmente em branch dedicada, com revisão independente e auditoria do histórico; commits, push e um único PR para main autorizados. A entrega segue para revisão humana do PR. Merge e produção permanecem pendentes de autorização própria. Ver [identidade](identity.md) e [evidências da etapa 2](etapa-2-execucao.md).
+Status atualizado em 19/11/2026: etapas 0–3 concluídas no escopo local. A etapa 3 foi integrada à `main` pelo [PR #3](https://github.com/danilo-humberto/cifradesk/pull/3), merge `7cc970e`. A conferência de 17/11 confirmou main local/remota nesse commit e conteúdo idêntico ao último commit validado, `54b1332`. Ver [encerramento, evidências e limites](etapa-3-execucao.md#encerramento-da-etapa-3--17112026). A etapa 4 está implementada e validada localmente, com a 4.6 e a revisão independente aprovadas, conforme o [planejamento e as evidências](etapa-4-planejamento.md). Integração da etapa 4 à `main` e produção permanecem pendentes.
 
 Este documento é a referência de escopo, arquitetura, etapas e critérios de aceite. Marcar itens somente após conclusão verificável. A aprovação do plano não substitui as autorizações específicas previstas nas instruções do projeto.
 
@@ -373,28 +373,30 @@ Fluxo atualizado por autorização: uma branch e um PR completo, com responsabil
 
 ### Etapa 3 — Chamados completos
 
-Decisões da tarefa 3.1 aprovadas: [tarefas, regras e critérios de aceite](etapa-3-planejamento.md). Para chamados, esse detalhamento substitui as propostas anteriores deste plano: sem categorias ou participantes, múltiplos responsáveis do setor, anexos na abertura e status ABERTA, PENDENTE, EM PROGRESSO, FEITO, REVISÃO, BLOCKED e FECHADA, com troca livre entre status. FECHADA aparece somente por filtro. A tarefa 3.2 possui schema, migration e contratos implementados e revisados localmente, sem publicação; a jornada completa da etapa 3 continua pendente. Consulte as [evidências e limitações da 3.2](tarefa-3.2-modelo-dados.md#implementação-e-verificação-local--13112026).
+Decisões da tarefa 3.1 aprovadas: [tarefas, regras e critérios de aceite](etapa-3-planejamento.md). Para chamados, esse detalhamento substitui as propostas anteriores deste plano: sem categorias ou participantes, múltiplos responsáveis do setor, anexos na abertura e status ABERTA, PENDENTE, EM PROGRESSO, FEITO, REVISÃO, BLOCKED e FECHADA, com troca livre entre status. FECHADA aparece somente por filtro. A jornada completa foi implementada, validada localmente e integrada pelo PR #3 em 17/11/2026. Consulte as [evidências e limitações da 3.2](tarefa-3.2-modelo-dados.md#implementação-e-verificação-local--13112026).
 
-- [ ] Implementar abertura, listagem paginada e detalhe.
-- [ ] Implementar atribuição, prioridade, prazo e transições de status.
-- [ ] Implementar Minhas solicitações e fila do setor.
-- [ ] Registrar histórico e eventos na outbox na mesma transação dos dados.
-- [ ] Implementar controle de concorrência.
-- [ ] Testar regras com RED → GREEN → REFACTOR.
+- [x] Implementar abertura, listagem paginada e detalhe.
+- [x] Implementar atribuição, prioridade, prazo e transições de status.
+- [x] Implementar Minhas solicitações e fila do setor.
+- [x] Registrar histórico e eventos na outbox na mesma transação dos dados.
+- [x] Implementar controle de concorrência.
+- [x] Testar regras com RED → GREEN → REFACTOR.
 
 **Aceite:** mesma conta solicita e atende; solicitante acompanha demanda em outro setor; conflitos não sobrescrevem alterações silenciosamente.
 
-A [tarefa 3.4](tarefa-3.4-abertura.md) acrescentou criação transacional, API e anexos privados, implementados/testados e registrados em commits locais autorizados, sem push/PR. A [3.5](tarefa-3.5-consultas.md) implementa consultas autorizadas, detalhe e histórico paginado em commits locais autorizados, sem push/PR. A [3.6](tarefa-3.6-operacoes.md) acrescenta operações e concorrência em commits locais autorizados, sem push/PR. A [interface da 3.7](tarefa-3.7-interface.md) está implementada localmente, validada e revisada localmente, com commits locais autorizados; a [validação da 3.8](etapa-3-execucao.md) está aprovada e revisada localmente, com commits locais autorizados, sem publicação. Auditoria após commits e integração da etapa inteira permanecem pendentes.
+As tarefas [3.4](tarefa-3.4-abertura.md), [3.5](tarefa-3.5-consultas.md), [3.6](tarefa-3.6-operacoes.md) e [3.7](tarefa-3.7-interface.md), junto à persistência da 3.2 e à validação da 3.8, compõem a entrega integrada. A 3.3 foi retirada do escopo por decisão aprovada. Os relatórios individuais preservam estados históricos anteriores à publicação; o [encerramento da etapa 3](etapa-3-execucao.md#encerramento-da-etapa-3--17112026) consolida a situação atual e os limites da validação.
 
 ### Etapa 4 — Conversas e anexos
 
-- [ ] Implementar mensagens persistentes e notas internas conforme matriz aprovada.
-- [ ] Implementar upload, finalização e download autorizados.
-- [ ] Validar limites e tipos de arquivos, estado do upload e acesso ao objeto.
-- [ ] Tratar uploads incompletos e objetos órfãos.
-- [ ] Testar isolamento de conteúdo, histórico e arquivos.
+- [x] Implementar mensagens persistentes e notas internas conforme matriz aprovada.
+- [x] Implementar upload, finalização e download autorizados.
+- [x] Validar limites e tipos de arquivos, estado do upload e acesso ao objeto.
+- [x] Tratar uploads incompletos e objetos órfãos pela limpeza operacional de reservas; escrita S3 tardia após queda continua uma limitação conhecida.
+- [x] Testar isolamento de conteúdo, histórico e arquivos.
 
 **Aceite:** conversa persiste após recarregar; notas internas e anexos não ficam acessíveis a pessoas sem permissão.
+
+Tarefas 4.1–4.5 implementadas na base local `feat/etapa-4` (`b26ac2c`); a 4.6 foi validada na branch exclusiva `codex/etapa-4-6-validacao`. Edição, revisões imutáveis, exclusão lógica e reenvio sem duplicação integram o escopo. Conteúdo removido/excluído fica retido e continua na quota; limpeza não apaga arquivos publicados retidos. A validação aprovou check, build, 84 integrações distintas (87 execuções), persistência SQL em base vazia/atualização, 86 E2E desktop/celular sem retries ou testes pulados e revisão independente. [Contratos, verificações e limites](etapa-4-planejamento.md#execução-da-46--19112026). A integração à `main` exige autorização própria.
 
 ### Etapa 5 — Tarefas e organização
 

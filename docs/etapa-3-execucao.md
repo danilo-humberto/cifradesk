@@ -1,5 +1,7 @@
 # Etapa 3.8 — Validação da entrega de chamados
 
+**Situação atual — 17/11/2026:** etapa 3 encerrada no escopo local e integrada à main pelo [PR #3](https://github.com/danilo-humberto/cifradesk/pull/3), merge `7cc970e`. Os registros abaixo são históricos; o [encerramento ao final](#encerramento-da-etapa-3--17112026) consolida o resultado efetivo e as limitações.
+
 Data: 16/11/2026. Branch: `codex/etapa-3-chamados`. Base local e remota conferidas por `git fetch origin main`: `7ddc3f343332a78a33015240b893dad4b9ae7892`. HEAD inicial: `ee98150`. **READY_FOR_HUMAN_REVIEW para a validação local da 3.8.** Dois commits locais autorizados pelo usuário, incluindo a alteração preexistente de `AGENTS.md` no commit documental. Sem push, PR, merge, deploy ou publicação no Linear. O conteúdo preexistente de `AGENTS.md` foi preservado integralmente.
 
 ## Escopo e critérios
@@ -93,3 +95,16 @@ Evidências finais locais: `.local/merge-check-final.log`, `.local/merge-build-f
 Limites preservados: contenção do lock global, multipart em memória e limpeza operacional de anexos. As integrações emitiram aviso de depreciação do driver pg sobre consultas concorrentes; não houve falha. Sem validação de produção, carga sustentada, Safari/Firefox ou leitor de tela. Nenhum deploy ou comentário no Linear foi executado.
 
 Arquivos centrais da correção final: `apps/web/src/components/ui/sidebar.tsx` e `tests/e2e/foundation.spec.ts`. Roteiro manual: focar o separador e conferir seu destaque; recolher/expandir e conferir a logo; no celular, abrir a navegação e fechá-la com um único Escape, preservando o retorno do foco ao acionador.
+
+
+## Encerramento da etapa 3 — 17/11/2026
+
+A etapa 3 está concluída para desenvolvimento e validação locais. O PR #3 foi integrado em 17/11/2026 às 09h41 (America/Sao_Paulo), no commit `7cc970efcaf4d6fb5b2e66e302b05b25e274eb70`. A consulta ao GitHub confirmou `MERGED`; `git ls-remote origin refs/heads/main` confirmou a mesma referência da main local. `git diff 54b1332 HEAD --stat`, executado na main durante a conferência, não apresentou diferenças: o merge preserva o conteúdo do último commit validado.
+
+O escopo entregue cobre persistência e contratos, abertura com anexos privados, listagens e detalhe autorizados, atribuição, transferência, prioridade, prazo, status, histórico/outbox transacionais, controle de concorrência e interface. A tarefa 3.3 foi retirada por decisão aprovada. A inspeção dos arquivos centrais e dos testes não identificou funcionalidade faltante desse escopo; não equivale a uma nova auditoria integral do código.
+
+As evidências da revisão para integração acima e a descrição do PR registram revisões independentes e correções reavaliadas. Na conferência de encerramento, os logs locais de check e build foram lidos e confirmaram lint, tipos, 86 unitários e compilação de web/worker; `.local/merge-e2e-final/.last-run.json` indica aprovação sem testes falhos. Os 32 testes de integração de chamados, a persistência fresh/upgrade e os 64 E2E são resultados da rodada anterior documentada, não de nova execução. As 15 integrações de identidade mantêm evidência histórica; os dois testes de HMR foram pulados no build de produção. O repositório não possui CI configurada e o PR não apresenta checks de CI.
+
+Permanecem os limites conhecidos: contenção do lock global, custo de paginação profunda/contagem, multipart em memória e limpeza operacional de anexos. Não foi validada carga sustentada, produção, Safari/Firefox ou leitor de tela. Esses limites não representam funcionalidades pendentes do escopo local da etapa 3; ensaios de capacidade e recuperação permanecem na etapa 8. Conversas, entrega de notificações e demais etapas futuras não integram este encerramento.
+
+Esta atualização consolida o plano principal, o planejamento da etapa 3 e este relatório, preservando as evidências históricas. Não houve nova execução das suítes, deploy, publicação no Linear ou alteração de código. O planejamento detalhado da etapa 4 não foi iniciado. As alterações documentais ficam na branch `codex/docs-encerramento-etapa-3`, sem novos commits, push ou PR, conforme solicitado.

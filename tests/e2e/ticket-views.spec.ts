@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from './fixtures';
+import { test, expect, selectDepartmentOption } from './fixtures';
 import { database } from '../../packages/database/src';
 import { createTicket } from '../../packages/infrastructure/src/tickets';
 
@@ -28,10 +28,9 @@ test('visualizações preservam dados, filtros, página e atualização', async 
     }
     await page.getByRole('combobox', { name: 'Filtrar por status' }).click();
     await page.getByRole('option', { name: 'ABERTA', exact: true }).click();
-    await page.getByRole('combobox', { name: 'Filtrar por setor' }).click();
-    await page.getByRole('option', { name: sector.name, exact: true }).click();
+    await selectDepartmentOption(page, 'Filtrar por setor', sector.name);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
-    const next = page.getByRole('button', { name: 'Próxima', exact: true });
+    const next = page.getByRole('navigation', { name: 'Paginação dos chamados' }).getByRole('button', { name: 'Próxima', exact: true });
     await next.scrollIntoViewIfNeeded();
     await expect(next).toBeInViewport();
     if (testInfo.project.name === 'mobile') await next.tap();
@@ -61,7 +60,7 @@ test('visualizações preservam dados, filtros, página e atualização', async 
     await response;
     await expect(link).toHaveAttribute('href', href!);
     await expect(page.getByRole('navigation', { name: 'Paginação dos chamados' })).toHaveText(/21 registros\s*Página 2/);
-    await page.getByRole('button', { name: 'Anterior', exact: true }).click();
+    await page.getByRole('navigation', { name: 'Paginação dos chamados' }).getByRole('button', { name: 'Anterior', exact: true }).click();
     await expect(page.getByRole('navigation', { name: 'Paginação dos chamados' })).toHaveText(/21 registros\s*Página 1/);
     if (path === '/requests') {
       for (const mode of ['Tabela', 'Lista', 'Cards']) {

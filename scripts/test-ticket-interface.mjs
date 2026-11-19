@@ -17,7 +17,7 @@ for (const migration of readdirSync(root).filter(value => /^\d/.test(value)).sor
 const runner = `
 import {spawn} from 'node:child_process';
 import {createRequire} from 'node:module';
-import {openSync, closeSync, cpSync, existsSync} from 'node:fs';
+import {openSync, closeSync, cpSync, existsSync, readdirSync} from 'node:fs';
 let input=''; for await(const chunk of process.stdin) input+=chunk;
 const env={...process.env,...JSON.parse(input),HOSTNAME:'127.0.0.1',PORT:'3317'};
 if(env.TICKET_UI_STORAGE==='1') {
@@ -55,7 +55,10 @@ try {
   // Record traces on Linux; copying finished artifacts avoids per-event bind-mount IO.
   const output='/tmp/ticket-ui-results-'+process.pid;
   const report='/tmp/ticket-ui-report-'+process.pid;
-  const selection=env.TICKET_UI_MESSAGES==='1'?['tests/e2e/ticket-messages.spec.ts']:env.TICKET_UI_ALL==='1'?[]:['tests/e2e/tickets.spec.ts'];
+  // HMR requires next dev; it is a separate smoke, not a production-build test.
+  const selection=env.TICKET_UI_MESSAGES==='1'?['tests/e2e/ticket-messages.spec.ts']:env.TICKET_UI_ALL==='1'
+    ?readdirSync('/workspace/tests/e2e').filter(name=>name.endsWith('.spec.ts')&&name!=='dev-hmr.spec.ts').sort().map(name=>'tests/e2e/'+name)
+    :['tests/e2e/tickets.spec.ts'];
   const tests=spawn('pnpm',['exec','playwright','test',...selection,...(env.TICKET_UI_GREP?['--grep',env.TICKET_UI_GREP]:[]),'--workers=1','--output',output],{env:{...env,PLAYWRIGHT_HTML_OUTPUT_DIR:report},stdio:'inherit'});
   process.exitCode=await new Promise(resolve=>tests.on('exit',code=>resolve(code??1)));
   if(existsSync(output)) cpSync(output,'/workspace/.local/ticket-ui-results-'+process.pid,{recursive:true});

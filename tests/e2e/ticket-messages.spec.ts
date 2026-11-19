@@ -19,8 +19,8 @@ async function send(request: APIRequestContext, baseURL: string, ticketId: strin
   expect(response.status()).toBe(201);
   return response.json() as Promise<{ id: string; version: number }>;
 }
-async function signedViewer(browser: Browser, baseURL: string, departmentId?: string) {
-  const user = await database().user.create({ data: { id: randomUUID(), name: 'Outro integrante', email: randomUUID() + '@example.test', isAdmin: true, ...(departmentId ? { memberships: { create: { departmentId } } } : {}) } });
+async function signedViewer(browser: Browser, baseURL: string, departmentId?: string, isAdmin = false) {
+  const user = await database().user.create({ data: { id: randomUUID(), name: 'Pessoa sintética', email: randomUUID() + '@example.test', isAdmin, ...(departmentId ? { memberships: { create: { departmentId } } } : {}) } });
   const token = randomUUID() + randomUUID();
   await database().invitation.create({ data: { userId: user.id, tokenHash: createHash('sha256').update(token).digest('hex'), expiresAt: new Date(Date.now() + 60000) } });
   await acceptInvitation(token, syntheticPassword);
@@ -59,11 +59,16 @@ test('envia Markdown com prévia segura, recarrega e separa o histórico', async
   await expect(message(page, 'Título seguro')).toHaveCount(1);
 });
 
-test('nota e arquivo internos ficam fora do solicitante e do administrador sem vínculo', async ({ page, browser, request, identity, baseURL }) => {
+test('jornada de solicitante, integrante, terceiro e administrador isola nota e arquivo internos', async ({ page, browser, request, identity, baseURL }) => {
   const ticket = await ticketFor(identity.id, false);
+  await database().user.update({ where: { id: identity.id }, data: { isAdmin: false } });
   const member = await signedViewer(browser, baseURL!, ticket.department.id);
   const outsider = await signedViewer(browser, baseURL!);
+  const admin = await signedViewer(browser, baseURL!, undefined, true);
   try {
+    for (const [viewer, isAdmin] of [[request, false], [member.request, false], [outsider.request, false], [admin.request, true]] as const) {
+      expect(await (await viewer.get('/api/me')).json()).toMatchObject({ isAdmin });
+    }
     const staff = await member.newPage();
     await staff.goto(`/requests/${ticket.id}`);
     await composer(staff).getByRole('combobox', { name: 'Visibilidade' }).click();
@@ -80,16 +85,36 @@ test('nota e arquivo internos ficam fora do solicitante e do administrador sem v
     expect((await request.get(`/api/tickets/${ticket.id}/messages`)).status()).toBe(200);
     expect((await (await request.get(`/api/tickets/${ticket.id}/messages`)).json()).total).toBe(0);
     expect((await request.get(`/api/tickets/${ticket.id}/attachments/${internal.id}`)).status()).toBe(404);
-    const third = await outsider.newPage();
-    await third.goto(`/requests/${ticket.id}`);
-    await expect(third.getByRole('alert').filter({ hasText: 'acesso não permitido' })).toBeVisible();
-    await expect(conversation(third)).toHaveCount(0);
-    expect((await outsider.request.get(`/api/tickets/${ticket.id}/messages`)).status()).toBe(404);
+    await composer(page).getByLabel('Texto da mensagem').fill('Solicitação compartilhada');
+    await composer(page).getByRole('button', { name: 'Enviar mensagem', exact: true }).click();
+    await expect(message(page, 'Solicitação compartilhada')).toBeVisible();
+    await staff.getByRole('button', { name: 'Atualizar chamado', exact: true }).click();
+    await expect(message(staff, 'Solicitação compartilhada')).toBeVisible();
+    await composer(staff).getByRole('combobox', { name: 'Visibilidade' }).click();
+    await staff.getByRole('option', { name: 'Mensagem compartilhada', exact: true }).click();
+    await composer(staff).getByLabel('Texto da mensagem').fill('Resposta do integrante');
+    await composer(staff).getByRole('button', { name: 'Enviar mensagem', exact: true }).click();
+    await expect(message(staff, 'Resposta do integrante')).toBeVisible();
+    await page.reload();
+    await expect(message(page, 'Resposta do integrante')).toBeVisible();
+    await expect(conversation(page)).not.toContainText('Nota reservada');
+    await expect(conversation(page)).not.toContainText(file.name);
+    expect((await (await request.get(`/api/tickets/${ticket.id}/messages`)).json()).total).toBe(2);
+    for (const viewer of [outsider, admin]) {
+      const third = await viewer.newPage();
+      await third.goto(`/requests/${ticket.id}`);
+      await expect(third.getByRole('alert').filter({ hasText: 'acesso não permitido' })).toBeVisible();
+      await expect(conversation(third)).toHaveCount(0);
+      for (const path of ['messages', 'attachments', `attachments/${internal.id}`, `messages/${internal.messageId}/revisions`]) {
+        expect((await viewer.request.get(`/api/tickets/${ticket.id}/${path}`)).status()).toBe(404);
+      }
+      expect((await viewer.request.post(`/api/tickets/${ticket.id}/messages`, { headers: { Origin: baseURL! }, multipart: { markdown: 'Envio sem acesso', visibility: 'SHARED', submissionId: randomUUID() } })).status()).toBe(404);
+    }
     await database().departmentMembership.deleteMany({ where: { departmentId: ticket.department.id } });
     await staff.getByRole('button', { name: 'Atualizar chamado', exact: true }).click();
     await expect(staff.getByRole('alert').filter({ hasText: 'acesso não permitido' })).toBeVisible();
     await expect(conversation(staff)).toHaveCount(0);
-  } finally { await member.close(); await outsider.close(); }
+  } finally { await member.close(); await outsider.close(); await admin.close(); }
 });
 
 test('edita texto e arquivos, mostra versões seguras, remove download e exclui com marcador', async ({ page, identity, request }) => {

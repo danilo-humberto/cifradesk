@@ -1,9 +1,26 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 import { createHash, randomUUID } from 'node:crypto';
 import { database } from '../../packages/database/src';
 import { acceptInvitation } from '../../packages/infrastructure/src/identity';
 export { expect };
 export const syntheticPassword = 'Synthetic-e2e-123!';
+export async function selectDepartmentOption(page: Page, label: string, name: string) {
+  const picker = page.getByRole('combobox', { name: label, exact: true });
+  for (;;) {
+    await picker.click();
+    await expect(page.getByRole('listbox')).toBeVisible();
+    const option = page.getByRole('option', { name, exact: true });
+    if (await option.count()) {
+      await option.click();
+      return;
+    }
+    await page.keyboard.press('Escape');
+    const next = page.getByRole('navigation', { name: label, exact: true }).getByRole('button', { name: 'Próxima', exact: true });
+    await expect(next, `Setor ${name} deve existir em uma página do seletor`).toBeEnabled();
+    await next.click();
+    await expect(picker).toBeEnabled();
+  }
+}
 export const test = base.extend<{ identity: { id: string; email: string } }>({
   identity: [async ({ request, context, baseURL }, use) => {
     const target = new URL(process.env.DATABASE_URL ?? '');

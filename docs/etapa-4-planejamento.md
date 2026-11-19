@@ -1,8 +1,8 @@
 # Etapa 4 — Conversas e anexos
 
-Data: 17/11/2026.
+Data: 17/11/2026. Acompanhamento da 4.6: 19/11/2026.
 
-Status: tarefas 4.1–4.5 implementadas e validadas localmente em 17/11/2026; 4.6 não iniciada. A 4.5 tem check, build, 22 E2E e revisão independente aprovados. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; a 4.2 tem `cfb9ec6` e `d413e8a`; a 4.3 tem `5a946ec`; a 4.4 tem `4212b3c`. A 4.5 ainda não tem commit. Push e PR não foram autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
+Status atualizado em 19/11/2026: tarefas 4.1–4.6 implementadas e validadas localmente, com revisão independente aprovada. A 4.5 foi registrada no commit `fb16e62` e incorporada à base local `feat/etapa-4`, commit `b26ac2c`. A 4.6 parte dessa base na branch `codex/etapa-4-6-validacao`. A 4.1 tem commit `8f03dc3`; a 4.2 tem `cfb9ec6` e `d413e8a`; a 4.3 tem `5a946ec`; a 4.4 tem `4212b3c`. Commit local e push da branch autorizados nesta entrega; PR e integração à `main` permanecem pendentes de autorização. Referência de escopo: [plano de implementação](plano-implementacao.md).
 
 ## Objetivo e decisões fechadas
 
@@ -78,12 +78,12 @@ Tarefas independentes, Kanban, notificações, lembretes e atualização em temp
 
 ### 4.6 — Validar a etapa completa e documentar
 
-- [ ] Executar `pnpm check`, `pnpm build`, integrações de identidade/chamados/conversas e E2E pertinentes.
-- [ ] Selecionar explicitamente as integrações novas: o comando atual `test:integration` executa somente identidade.
-- [ ] Demonstrar a jornada com contas sintéticas de solicitante, integrante, terceiro e administrador sem vínculo.
-- [ ] Revisar independentemente permissões, arquivos internos, concorrência e publicação conjunta; corrigir e reavaliar bloqueios.
-- [ ] Atualizar planejamento, arquitetura e operação, incluindo retenção, consumo de quota, limpeza e evidências RED/GREEN de cada tarefa.
-- [ ] **Pronta quando:** todas as tarefas anteriores e verificações obrigatórias passarem, sem falhas ou testes obrigatórios pulados tratados como aprovação.
+- [x] Executar `pnpm check`, `pnpm build`, integrações de identidade/chamados/conversas e E2E pertinentes.
+- [x] Selecionar explicitamente as integrações novas: o comando atual `test:integration` executa somente identidade.
+- [x] Demonstrar a jornada com contas sintéticas de solicitante, integrante, terceiro e administrador sem vínculo.
+- [x] Revisar independentemente permissões, arquivos internos, concorrência e publicação conjunta; corrigir e reavaliar bloqueios.
+- [x] Atualizar planejamento, arquitetura e operação, incluindo retenção, consumo de quota, limpeza e evidências RED/GREEN de cada tarefa.
+- [x] **Pronta quando:** todas as tarefas anteriores e verificações obrigatórias passarem, sem falhas ou testes obrigatórios pulados tratados como aprovação.
 
 ## Contratos e reaproveitamento técnico
 
@@ -113,7 +113,7 @@ Criar branch exclusiva `codex/etapa-4-conversas` a partir da `main` conferida. P
 
 **Risco alto:** vazamento de notas/anexos internos e inconsistência entre banco e armazenamento. A retenção escolhida também pode esgotar a quota mesmo após remoções; isso deve ficar claro na interface. Não haverá exclusão física automática desses arquivos nesta etapa.
 
-Mudanças de banco, autorização e inclusão da dependência Markdown exigem autorização específica antes da execução, conforme o AGENTS.md. Commits, push, PR, escrita no Linear, merge e deploy conservam suas autorizações próprias. Organizar commits por responsabilidade, mantendo testes necessários junto ao comportamento e sem adiar TDD.
+As autorizações específicas das mudanças de banco, autorização e dependência Markdown estão registradas nas execuções 4.1–4.5. A 4.6 reaplica somente migrations existentes em bancos sintéticos, sem novo schema ou alteração da base de trabalho. Commits, push, PR, escrita no Linear, merge e deploy conservam suas autorizações próprias. Organizar commits por responsabilidade, mantendo testes necessários junto ao comportamento e sem adiar TDD.
 
 Cada tarefa só fica **validada localmente quando seus testes passarem**. A etapa só fica concluída após validação integral, revisão e integração autorizada à `main`.
 
@@ -334,3 +334,52 @@ Sem achados concretos pendentes após corrigir perda parcial de capacidade e foc
 Pedágio didático: repetir o mesmo identificador torna a criação idempotente (não duplica o envio); versão esperada detecta alterações entre sessões; capacidade orienta a tela, mas a autorização continua no servidor. Caça aos erros silenciosos: perder vínculo durante edição pode bloquear a tela mesmo sem vazar dados; o novo E2E remove o vínculo mantendo o solicitante, verifica ocultação da nota, saída da edição, navegação e compartilhamento somente por escolha explícita.
 
 Mensagem sugerida, sem execução: `feat: add ticket conversation interface with safe markdown`.
+
+### Execução da 4.6 — 19/11/2026
+
+Pedido direto do usuário: iniciar a 4.6 a partir de `feat/etapa-4`. Criada a branch exclusiva `codex/etapa-4-6-validacao` sobre `b26ac2c`. A base contém a interface da 4.5 em `fb16e62`; a integração com `main` permanece pendente. As alterações preexistentes em `AGENTS.md` e nos documentos da etapa 3 foram preservadas integralmente. O plano geral já tinha mudanças locais; esta tarefa atualiza somente o estado atual e a seção da etapa 4, conservando o encerramento da etapa 3.
+
+Não houve mudança de regra de negócio, schema, dependência ou interface nesta tarefa. O E2E de isolamento foi reforçado porque o auxiliar anterior criava todos os participantes como administradores. Agora solicitante, integrante e terceiro são contas comuns, com um quarto administrador sem vínculo; os papéis são conferidos pela API. O roteiro verifica troca compartilhada, nota com arquivo, contagem filtrada, negação de leitura/envio/download/revisões e perda de vínculo. O auxiliar também cria integrante comum no teste de autoria. O runner completo seleciona todos os `.spec.ts` de produção e exclui explicitamente o smoke de HMR, que exige `next dev` e continua com comando próprio.
+
+A primeira execução completa revelou uma suposição incorreta nos testes antigos de visualizações/abertura: buscavam o setor somente na primeira página do seletor. Os dados sintéticos de conversa fazem o total ultrapassar 20; o registro da falha mostra apenas setores “Conversa”/“Origem” na página inicial e a espera pela opção de outra página. Acrescentado auxiliar E2E compartilhado que fecha o seletor, avança sua paginação visível, aguarda o carregamento e procura a opção exata. O teste de visualizações agora distingue a paginação do seletor da paginação dos chamados. As asserções de conteúdo, filtros, página, foco e navegação foram mantidas; sem retries ou aumento de timeout.
+
+Na segunda execução, esses três casos passaram, mas a posição alfabética aleatória revelou a mesma suposição no teste administrativo de setores. O roteiro também passou a percorrer a paginação visível da administração, aguardando a resposta da consulta e o fim do carregamento. Nenhum teste foi retirado ou teve timeout ampliado.
+
+Preparação: fontes versionadas sincronizadas por arquivo tar, instalação com lock congelado e cliente Prisma gerado. Identidade usa projeto Compose explícito `cifradesk-identity-tests`, banco `identity_test`, Mailpit próprio e rede separada conectada às ferramentas. Destino conferido antes de aplicar as quatro migrations existentes somente no banco sintético. Chamados/conversas usam bases exclusivas criadas pelos runners; nenhuma migration foi aplicada à base de trabalho. O Node 24.22.0 instalado no host apenas orquestrou Docker; testes e compilação usaram Node 24.22.3/pnpm 10.34.9 do container. O atalho Node recusou a faixa de versão antes de executar o runner; isso não conta como falha do produto nem como RED.
+
+| Verificação em 19/11/2026 | Resultado |
+| --- | --- |
+| `pnpm install --frozen-lockfile` e `pnpm db:generate` no container | Lock preservado, schema válido, Prisma Client 7.10.1 gerado |
+| `docker exec cifradesk-etapa34-tools pnpm check`, após reforçar teste/runner | Lint sem avisos e tipos aprovados; 101 testes aprovados. As 84 integrações puladas foram executadas pelos comandos específicos abaixo |
+| `node scripts/test-stage-three.mjs` | 15 integrações de identidade, 12 de abertura/anexos, 12 de consultas e 8 de operações aprovadas; persistência SQL de chamados em base vazia/atualização também aprovada |
+| `node scripts/test-message-persistence.mjs` | SQL, preservação dos registros, snapshots, constraints, índices e schema sem diferenças nos dois cenários; 3 integrações Prisma aprovadas em cada cenário |
+| `node scripts/test-ticket-messages.mjs` | 34/34 integrações aprovadas: 9 de isolamento, 11 de anexos/idempotência e 14 de edição/exclusão/revisões; nenhuma pulada |
+| `docker exec cifradesk-etapa34-tools pnpm build` | Web e worker compilados; rotas de conversa/revisões incluídas |
+| Primeira execução de `node scripts/test-ticket-interface.mjs --all` | 83/86 aprovados; três falhas no celular por buscar setor fora da primeira página do seletor. Os 22 cenários de conversa passaram |
+| Segunda execução completa após corrigir os seletores | 85/86 aprovados; os três casos anteriores passaram. Uma falha no teste administrativo de setores pela mesma suposição de primeira página |
+| Execução completa após corrigir também o roteiro administrativo | **86/86 aprovados**, em 5,0 minutos; Chromium desktop/celular, um worker, zero retries, nenhuma falha ou teste pulado |
+| Igualdade entre fontes e execução | SHA-256 de 203 arquivos versionados não Markdown idênticos entre host e container |
+
+Total de integração: **84 testes distintos / 87 execuções**, pois os três de persistência Prisma rodam em base vazia e atualização. SQL de persistência é verificado adicionalmente por asserções dos runners. Bases desta execução: `identity_test`, `tickets_test_d6e439d1f6a347318371682f51ca4651`, `tickets_test_f3ed5d2e49c84cdcb3c921eea5559fb4`, `tickets34_test_b017e3f09b0f1ac995ee`, `tickets35_test_af08af10f31ab1c191b6`, `tickets36_test_79563297f61c11a32777`, `messages41_test_f8bf4354dd71733b8907`, `messages41_test_fd059d347724e88a6613` e `messages42_test_84e1070e2d5093f096fb`. E2E inicial: `tickets37_test_25f30ef7846191c2f723`; segunda execução: `tickets37_test_4a493d0d86d1516406d5`; execução final aprovada: `tickets37_test_09f23868ea89c90db60b`. Recursos sintéticos ficam preservados para diagnóstico. Aviso preexistente do cliente `pg` sobre consultas concorrentes nas integrações, sem falha; não houve alteração de driver.
+
+Evidências RED/GREEN das tarefas anteriores, preservadas neste documento:
+
+| Tarefa | RED de comportamento registrado | GREEN registrado e regressão na 4.6 |
+| --- | --- | --- |
+| [4.1](#execução-da-41--17112026) | `TicketMessage migration is missing`, com bases sintéticas preparadas | Base vazia/atualização, SQL e três integrações por cenário aprovados novamente |
+| [4.2](#execução-da-42--17112026) | Serviço ausente e handlers HTTP provisórios 501 | Nove integrações de isolamento e oito testes HTTP atuais aprovados novamente |
+| [4.3](#execução-da-43--17112026) | Rejeição de `submissionId`, ausência do fluxo de anexos e cinco falhas HTTP esperadas | Onze integrações de anexos/idempotência e contratos HTTP atuais aprovados novamente |
+| [4.4](#execução-da-44--17112026) | Quatorze integrações por operações ausentes; primeiro HTTP não executou por módulo ausente | Quatorze integrações e sete testes HTTP atuais aprovados novamente |
+| [4.5](#execução-da-45--17112026) | Região da conversa ausente; depois saída de edição/foco ausentes nos casos da revisão | Os 22 E2E de conversa passaram novamente dentro dos 86 cenários da 4.6 |
+
+Esta etapa consolida validação e reforça cobertura, sem implementar comportamento novo do produto; não foi fabricado um RED removendo código já entregue. Falhas de ambiente e dados sintéticos inválidos descritas nos registros anteriores continuam sem contar como RED de comportamento.
+
+Capturas de conversa/editor em desktop e celular, nos temas claro/escuro, inspecionadas pelo executor, incluindo a área visível no celular para distinguir artefatos de recorte longo: sem impedimento visual identificado. Foram capturadas na execução inicial; o código de interface não mudou depois. Teclado, foco e ausência de rolagem horizontal são verificados pelos E2E. Logs locais: `.local/etapa46-check-final.log`, `.local/etapa46-build.log`, `.local/etapa46-e2e-initial.log`, `.local/etapa46-e2e-second.log` e `.local/etapa46-e2e-final.log`. Relatórios/traces ficam no container em `.local/ticket-ui-{report|results}-*`; imagens copiadas para `.local/etapa46-conversation-*.png` no host. Todos permanecem ignorados pelo Git.
+
+Revisão independente via `review-agent`/`review-delivery`, em contexto limpo e somente leitura, após todos os checks e E2E passarem: **APROVADO PARA ENTREGA**, sem achados concretos de correção, incluindo níveis médio/baixo. Escopo: diff completo da etapa 4 desde `7cc970e`, incluindo migrations, caminhos antigos de anexos e os ajustes da 4.6. Conferidos autoria e autorização atuais, isolamento de notas/revisões/arquivos, concorrência, quota, publicação conjunta, reenvio e Markdown. O revisor confirmou que os reforços E2E preservam as asserções e usam a paginação da interface. Revisão estática: o revisor não alterou arquivos nem repetiu testes/build; as execuções acima foram realizadas pelo executor.
+
+Limites mantidos: rascunho somente em memória; sem tempo real ou notificações; conteúdo removido/excluído fica retido e consumindo os 200 MiB; limpeza manual de reservas após 30 minutos, em lotes de 100; multipart em memória; lock global sem ensaio de contenção; escrita S3 tardia após queda pode deixar objeto órfão. Upload/download E2E usa SeaweedFS real local, mas falhas de rede são injetadas e disputas no armazenamento usam simulador em memória. Sem Firefox/Safari, leitor de tela humano, homologação com usuários, carga ou teste de produção.
+
+Documentos atualizados: README, plano geral, este planejamento, arquitetura e operação. A 4.6 está **validada localmente**, com todos os critérios obrigatórios atendidos e sem falhas pendentes. Durante a validação, não houve commit, push, PR, escrita no Linear, merge ou deploy.
+
+Entrega Git autorizada em 19/11/2026: o usuário solicitou um commit local com todas as alterações, incluindo as preexistentes em `AGENTS.md` e nos documentos da etapa 3/plano geral, seguido do push de `codex/etapa-4-6-validacao`. Conferência anterior ao commit: 203 arquivos versionados não Markdown idênticos ao container validado, sem novos arquivos ou artefatos de build versionados e `git diff --check` aprovado. Os resultados dos testes e da revisão acima permanecem válidos; somente este registro de autorização foi atualizado depois. PR, merge, deploy e escrita no Linear conservam suas autorizações próprias.

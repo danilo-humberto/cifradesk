@@ -189,7 +189,7 @@ Conferência manual em ambiente sintético preparado: autenticar solicitante e i
 - Repetir exatamente o mesmo conteúdo e `submissionId` quando houver perda de resposta. Envio concluído retorna a mesma mensagem; chave reutilizada com conteúdo diferente ou tentativa ainda em andamento retorna 409. Repetições exigem acesso e sessão atuais.
 - Não liberar quota manualmente nem tornar reservas `AVAILABLE`: publicação pertence à transação do serviço. Falhas ficam invisíveis; objetos pendentes continuam consumindo quota até a limpeza confirmar remoção após a janela de 30 minutos. Executar o procedimento operacional de limpeza existente em lotes de até 100, sem endpoint público.
 - Para conferir isolamento, tentar o ID de um arquivo interno na rota antiga `/api/tickets/{id}/attachments/{attachmentId}` como solicitante sem vínculo: deve retornar 404. A listagem geral também deve excluir arquivo e contagem. Removidos e mensagens excluídas permanecem bloqueados mesmo com vínculo.
-- Os testes simulam falha parcial, expiração e revogação durante IO com armazenamento em memória; a regressão da etapa 3 usa SeaweedFS real local. Não simulam cancelamento remoto tardio real nem substituem o E2E da interface futura. Limitação herdada: escrita remota que termine depois da exclusão final pode deixar objeto órfão se o processo cair; não há garantia de cancelamento remoto.
+- Os testes simulam falha parcial, expiração e revogação durante IO com armazenamento em memória; a regressão da etapa 3 e o E2E de conversa usam SeaweedFS real local. Não simulam cancelamento remoto tardio real. Limitação herdada: escrita remota que termine depois da exclusão final pode deixar objeto órfão se o processo cair; não há garantia de cancelamento remoto.
 
 ### Edição, exclusão e retenção — tarefa 4.4
 
@@ -217,7 +217,7 @@ node scripts/test-ticket-interface.mjs --messages
 
 O Node do host apenas orquestra Docker; usar o binário do aplicativo por caminho absoluto se o atalho do gerenciador não localizar a versão exigida. `--messages` seleciona explicitamente `ticket-messages.spec.ts`, desktop e celular Chromium, um worker e zero retries. `--grep "envia Markdown"` permite reproduzir um roteiro. Usa base/papel sintéticos `tickets37_test_*`, aplica migrations somente nessa base e inicia standalone em `127.0.0.1:3317` dentro do container. Reutiliza exclusivamente credencial S3 local de `.local/s3.json`, em memória/stdin, criando bucket privado exclusivo `messages45-test-*` no SeaweedFS local; verifica 403 anônimo antes do servidor. Não imprime credenciais nem lê `.env` da aplicação. Preserva banco/bucket para diagnóstico e encerra o servidor ao finalizar.
 
-`--all` agora inclui a conversa e também prepara esse bucket; sem seleção continua executando somente `tickets.spec.ts`. Não executar simultaneamente com outras suítes/build no container. Logs, relatórios e imagens `conversation-{chromium|mobile}-{light|dark}.png` ficam em `.local` ignorado no Git; copiar imagens do container para inspecionar no host. Casos de upload/download usam S3 real local. As falhas de conexão/resposta são injetadas pelo Playwright; não representam corte real de rede. [Execução e limites da 4.5](etapa-4-planejamento.md#execução-da-45--17112026).
+`--all` inclui todos os arquivos `.spec.ts` da pasta E2E, exceto `dev-hmr.spec.ts`, que exige servidor de desenvolvimento e tem comando próprio acima. Também prepara esse bucket; sem seleção continua executando somente `tickets.spec.ts`. Assim, o teste de HMR não aparece como um teste pulado na validação do standalone. Não executar simultaneamente com outras suítes/build no container. Logs, relatórios e imagens `conversation-{chromium|mobile}-{light|dark}.png` ficam em `.local` ignorado no Git; copiar imagens do container para inspecionar no host. Casos de upload/download usam S3 real local. As falhas de conexão/resposta são injetadas pelo Playwright; não representam corte real de rede. [Execução e limites da 4.5](etapa-4-planejamento.md#execução-da-45--17112026).
 
 ## Regressão completa — tarefa 3.8
 
@@ -240,3 +240,41 @@ node scripts/test-ticket-interface.mjs --all
 `node` no host apenas orquestra Docker; use um binário instalado por caminho explícito caso o gerenciador do host recuse a versão. Testes/compilação usam Node do container. `pnpm test:integration` isoladamente continua sendo apenas identidade; `test-stage-three.mjs` acrescenta explicitamente persistência SQL e todas as integrações de chamados, cada qual no seu banco sintético. Não executar testes pesados ou build simultaneamente nesse container.
 
 O E2E `--all` inclui fundação visual, identidade e chamados, em Chromium desktop/celular, sem retries. Inicia o standalone recém-compilado em `127.0.0.1:3317` dentro do container, banco exclusivo `tickets37_test_*`, segredo de sessão aleatório e SMTP `identity-mailpit:1025`. Não publica porta e encerra o servidor ao finalizar. Sem `--all`, seleciona somente chamados. Logs/traces/relatórios ficam em `.local`, ignorados pelo Git; contêm somente dados/sessões sintéticas. O upload de recuperação no navegador é simulado; o runner de abertura testa S3 real separadamente. [Resultados e limites da 3.8](etapa-3-execucao.md).
+
+## Validação integral de conversas — tarefa 4.6
+
+Usar os pré-requisitos da regressão acima. O container `cifradesk-etapa34-tools` contém uma cópia do código, sem montagem do workspace: sincronizar antes da execução. Uma forma de copiar apenas fontes versionadas, incluindo alterações locais, sem `.env`, dependências ou artefatos:
+
+```powershell
+$stage46Sources = @(git ls-files)
+tar -cf .local/etapa46-source.tar @stage46Sources
+docker cp .local/etapa46-source.tar cifradesk-etapa34-tools:/tmp/etapa46-source.tar
+docker exec cifradesk-etapa34-tools tar -xf /tmp/etapa46-source.tar -C /workspace
+docker exec cifradesk-etapa34-tools pnpm install --frozen-lockfile
+docker exec cifradesk-etapa34-tools pnpm db:generate
+```
+
+Arquivos novos ainda não versionados precisam ser copiados explicitamente. `.local/identity-test.env` e `.local/s3.json` também precisam estar disponíveis no container; copiar somente a configuração sintética/local existente, sem imprimir valores. Conferir a igualdade dos arquivos entre host e container antes de considerar a execução válida.
+
+Nesta execução, identidade foi preparada com `docker compose -p cifradesk-identity-tests -f compose.test.yaml up -d --wait identity-postgres identity-mailpit`, mantendo o nome do projeto explícito. O container de ferramentas foi conectado à rede `cifradesk-identity-tests_default`, além da rede local. Antes de aplicar as quatro migrations existentes, foi conferido `identity_test`/`identity_test` no serviço `identity-postgres`; a migração usou `node --env-file=.local/identity-test.env scripts/run-local.mjs pnpm db:migrate` no container. Não migrar a base de trabalho para executar testes.
+
+Executar os comandos abaixo em sequência, sem testes/build simultâneos no container:
+
+```powershell
+docker exec cifradesk-etapa34-tools pnpm check
+node scripts/test-stage-three.mjs
+node scripts/test-message-persistence.mjs
+node scripts/test-ticket-messages.mjs
+docker exec cifradesk-etapa34-tools pnpm build
+node scripts/test-ticket-interface.mjs --all
+```
+
+`test-stage-three.mjs` seleciona identidade (15), abertura/anexos (12), consultas (12), operações (8) e persistência SQL de chamados em base vazia/atualização. `test-message-persistence.mjs` acrescenta SQL/schema e três integrações Prisma em cada um dos dois cenários. `test-ticket-messages.mjs` seleciona isolamento (9), anexos/idempotência (11) e edição/exclusão/revisões (14). São **84 integrações distintas**, com as três de persistência executadas duas vezes; nenhuma deve ficar pulada nos comandos específicos. As 84 puladas em `pnpm check` não contam como aprovação.
+
+O roteiro de conversa confirma via `/api/me` os quatro perfis sintéticos: solicitante, integrante e terceiro sem administração, mais administrador sem vínculo. Solicitante e integrante trocam mensagens compartilhadas, enquanto nota/arquivo interno permanecem exclusivos do setor. Terceiro e administrador não recebem detalhe, mensagens, anexos ou revisões e não publicam. A perda de vínculo encerra o acesso do integrante. Os demais roteiros exercitam conflitos, retenção, exclusão, perda de resposta, foco e temas. A demonstração é automatizada no navegador; não representa homologação humana.
+
+Com mais de 20 setores, o destino/filtro pode estar em outra página. O auxiliar `selectDepartmentOption` dos E2E percorre a paginação do seletor pela interface; não depende da ordem de execução nem força a opção pela API. Os controles “Próxima”/“Anterior” dos chamados são localizados dentro de sua própria região para distinguir as duas paginações.
+
+Retenção: os 200 MiB incluem arquivos disponíveis, removidos/excluídos e reservas pendentes; somente `FAILED` deixa de contar. A limpeza operacional aguarda 30 minutos, processa até 100 reservas por chamada e libera quota apenas após confirmar a exclusão. Ela não apaga conteúdo publicado retido, não é agendada e não resolve a limitação de escrita S3 tardia após queda do processo. Não há endpoint administrativo para recuperar o conteúdo excluído. [Contratos e limites](architecture.md#publicação-conjunta-e-idempotência--tarefa-43).
+
+Resultado em 19/11/2026: check (lint, tipos e 101 testes) e build web/worker aprovados; 84 integrações distintas executadas explicitamente, totalizando 87 execuções; SQL/schema em base vazia/atualização aprovados; 86/86 E2E aprovados, sem retries ou testes pulados. Revisão independente estática, em contexto limpo e somente leitura, aprovada sem achados concretos. As duas execuções E2E anteriores revelaram suposições de primeira página nos testes, corrigidas sem enfraquecer asserções nem ampliar timeouts. [Evidências e limites da 4.6](etapa-4-planejamento.md#execução-da-46--19112026). Sem alterações na base de trabalho ou em produção.
