@@ -182,7 +182,7 @@ Executar `node scripts/test-ticket-messages.mjs` no host. Requer PostgreSQL loca
 
 Validar também `docker exec cifradesk-etapa34-tools pnpm check` e `docker exec cifradesk-etapa34-tools pnpm build`. O check inclui os oito testes HTTP de criação/listagem e sete de mutações/revisões, mas pula integrações sem a variável habilitadora: o runner específico é obrigatório. Regressões relacionadas: `node scripts/test-ticket-opening.mjs`, `node scripts/test-ticket-queries.mjs` e `node scripts/test-ticket-operations.mjs`. O primeiro usa configuração S3 local em memória e bucket sintético privado; não imprime credenciais. Executar suítes de integração sequencialmente no container compartilhado. O Node do host somente orquestra Docker; testes e compilação usam o runtime do container.
 
-Conferência manual em ambiente sintético preparado: autenticar solicitante e integrante; enviar multipart com `markdown`, `visibility`, `submissionId` UUID e `files` opcionais à rota `/api/tickets/{id}/messages`; comparar GET e histórico com ambas as contas. Nota interna não pode aparecer nem na contagem do solicitante. Transferir o chamado e confirmar acesso apenas pelo novo setor; desativar setor após fechar seus chamados e conferir leitura sem envio. Terceiro e administrador sem vínculo recebem 404. Essa conferência manual não foi executada nesta tarefa; os cenários correspondentes foram cobertos pelos testes. Ainda não há interface de conversa. [Contrato e limites](architecture.md#publicação-conjunta-e-idempotência--tarefa-43), [evidências](etapa-4-planejamento.md#execução-da-43--17112026).
+Conferência manual em ambiente sintético preparado: autenticar solicitante e integrante; enviar multipart com `markdown`, `visibility`, `submissionId` UUID e `files` opcionais à rota `/api/tickets/{id}/messages`; comparar GET e histórico com ambas as contas. Nota interna não pode aparecer nem na contagem do solicitante. Transferir o chamado e confirmar acesso apenas pelo novo setor; desativar setor após fechar seus chamados e conferir leitura sem envio. Terceiro e administrador sem vínculo recebem 404. Essa conferência manual não foi executada na 4.3; os cenários correspondentes foram cobertos pelos testes. A interface foi acrescentada na 4.5, abaixo. [Contrato e limites](architecture.md#publicação-conjunta-e-idempotência--tarefa-43), [evidências](etapa-4-planejamento.md#execução-da-43--17112026).
 
 ### Reenvio e recuperação — tarefa 4.3
 
@@ -198,6 +198,26 @@ Conferência manual em ambiente sintético preparado: autenticar solicitante e i
 - Remover arquivo ou excluir mensagem não libera quota nem apaga bytes. Não encaminhar esses arquivos `AVAILABLE` à limpeza: ela trata somente uploads provisórios/falhos. Revisões preservam nomes de arquivos removidos com `available: false`; exclusão bloqueia a própria consulta de versões e todos os downloads. Não existe endpoint administrativo para ler conteúdo retido.
 - Reservas de edição apontam à mensagem existente, permanecendo invisíveis até a publicação. Falha/concorrência encaminha apenas as reservas da própria tentativa à limpeza existente; aguardar janela de 30 minutos e processar até 100 por chamada. Não promover reservas manualmente nem apagar arquivos de outras tentativas.
 - Conferência manual futura: abrir duas sessões do autor na mesma versão; editar em uma e tentar salvar/excluir na outra (409). Remover um arquivo e consultar a revisão inicial (nome preservado, indisponível); excluir a mensagem e tentar revisões/download por URL (404). Estes cenários têm testes automatizados; não houve conferência manual/UI na 4.4. [Contrato implementado](architecture.md#edição-revisões-e-exclusão--tarefa-44).
+
+## Interface de conversa — tarefa 4.5
+
+No detalhe, usar “Conversa” para mensagens compartilhadas/notas internas e “Histórico operacional” para atividades. Somente integrantes atuais do setor responsável podem escolher e publicar novas notas internas. Revisões abrem em diálogo paginado; arquivo removido aparece como “Indisponível”. Setor desativado conserva leitura; FECHADO continua recebendo mensagens. “Atualizar chamado” busca dados novos sem apagar rascunhos em memória. A página não recebe atualizações em tempo real.
+
+Falha de criação: conservar a página e usar “Tentar o mesmo envio”, que mantém identificador e arquivos. “Revisar rascunho” pede confirmar que o próximo envio será novo; conferir a conversa antes para evitar duplicação. Conflito/falha incerta de edição: “Conferir versão atual”, comparar a publicação e só então “Usar versão atual como base”, ou cancelar. Não reaplicar automaticamente; se os novos arquivos já estiverem publicados, removê-los da seleção antes de salvar outra vez. Exclusão com erro exige conferir a conversa e abrir nova confirmação. Recarregar a página ou encerrar sessão perde o rascunho; não há salvamento local automático. Remover arquivo/excluir mensagem não libera quota.
+
+Se perder vínculo mantendo acesso como solicitante, notas publicadas deixam de aparecer. Uma edição interna fica oculta; “Encerrar edição” libera ações e paginação. Um rascunho interno novo não é compartilhado automaticamente: o envio fica bloqueado até revisar o conteúdo e escolher explicitamente “Mensagem compartilhada”. Setor desativado também oferece “Encerrar edição”, mantendo somente leitura.
+
+Para reproduzir a suíte de interface, sincronizar os arquivos modificados com `cifradesk-etapa34-tools` (sem bind mount), instalar o lock atualizado com `pnpm install --frozen-lockfile` e compilar antes:
+
+```powershell
+docker exec cifradesk-etapa34-tools pnpm check
+docker exec cifradesk-etapa34-tools pnpm build
+node scripts/test-ticket-interface.mjs --messages
+```
+
+O Node do host apenas orquestra Docker; usar o binário do aplicativo por caminho absoluto se o atalho do gerenciador não localizar a versão exigida. `--messages` seleciona explicitamente `ticket-messages.spec.ts`, desktop e celular Chromium, um worker e zero retries. `--grep "envia Markdown"` permite reproduzir um roteiro. Usa base/papel sintéticos `tickets37_test_*`, aplica migrations somente nessa base e inicia standalone em `127.0.0.1:3317` dentro do container. Reutiliza exclusivamente credencial S3 local de `.local/s3.json`, em memória/stdin, criando bucket privado exclusivo `messages45-test-*` no SeaweedFS local; verifica 403 anônimo antes do servidor. Não imprime credenciais nem lê `.env` da aplicação. Preserva banco/bucket para diagnóstico e encerra o servidor ao finalizar.
+
+`--all` agora inclui a conversa e também prepara esse bucket; sem seleção continua executando somente `tickets.spec.ts`. Não executar simultaneamente com outras suítes/build no container. Logs, relatórios e imagens `conversation-{chromium|mobile}-{light|dark}.png` ficam em `.local` ignorado no Git; copiar imagens do container para inspecionar no host. Casos de upload/download usam S3 real local. As falhas de conexão/resposta são injetadas pelo Playwright; não representam corte real de rede. [Execução e limites da 4.5](etapa-4-planejamento.md#execução-da-45--17112026).
 
 ## Regressão completa — tarefa 3.8
 

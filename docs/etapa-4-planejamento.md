@@ -2,7 +2,7 @@
 
 Data: 17/11/2026.
 
-Status: tarefas 4.1–4.4 implementadas localmente em 17/11/2026; tarefas 4.5–4.6 não iniciadas. A 4.4 tem testes, build e revisão independente aprovados localmente. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; a 4.2 tem `cfb9ec6` e `d413e8a`; a 4.3 tem `5a946ec`. O commit local da 4.4 foi autorizado após a entrega; seu hash deve ser consultado no histórico da branch. Push e PR não foram autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
+Status: tarefas 4.1–4.5 implementadas e validadas localmente em 17/11/2026; 4.6 não iniciada. A 4.5 tem check, build, 22 E2E e revisão independente aprovados. Somente os itens marcados abaixo possuem execução registrada. A 4.1 tem commit local `8f03dc3`; a 4.2 tem `cfb9ec6` e `d413e8a`; a 4.3 tem `5a946ec`; a 4.4 tem `4212b3c`. A 4.5 ainda não tem commit. Push e PR não foram autorizados. Referência de escopo: [plano de implementação](plano-implementacao.md).
 
 ## Objetivo e decisões fechadas
 
@@ -67,14 +67,14 @@ Tarefas independentes, Kanban, notificações, lembretes e atualização em temp
 
 ### 4.5 — Entregar a conversa na interface
 
-- [ ] **E2E antes:** escrever os roteiros de envio, recarga, nota interna, edição, versões, exclusão, conflito e falha com preservação do rascunho.
-- [ ] Acrescentar conversa paginada ao detalhe, mantendo histórico operacional separado.
-- [ ] Usar componentes shadcn/ui existentes, com editor de Markdown e prévia; distinguir claramente “Mensagem compartilhada” e “Nota interna”.
-- [ ] Mostrar autor, data, “editada”, anexos ativos e marcador de exclusão; ações limitadas às capacidades retornadas pelo servidor.
-- [ ] Atualizar consultas após operações e pelo botão de atualização existente; sem prometer tempo real.
-- [ ] Renderizar Markdown com `react-markdown`, sem HTML embutido, imagens externas, MDX ou execução de código. Suportar títulos, listas, citações, links e blocos de código; manter a proteção de URLs da biblioteca. [Referência oficial](https://github.com/remarkjs/react-markdown).
-- [ ] Testar Markdown malicioso na prévia, conversa e versões; teclado, foco, temas, tela pequena, estados de erro e `cursor-pointer` nos controles.
-- [ ] **Pronta quando:** E2E dos cenários passarem e a conferência visual/manual não encontrar impedimentos de uso.
+- [x] **E2E antes:** escrever os roteiros de envio, recarga, nota interna, edição, versões, exclusão, conflito e falha com preservação do rascunho.
+- [x] Acrescentar conversa paginada ao detalhe, mantendo histórico operacional separado.
+- [x] Usar componentes shadcn/ui existentes, com editor de Markdown e prévia; distinguir claramente “Mensagem compartilhada” e “Nota interna”.
+- [x] Mostrar autor, data, “editada”, anexos ativos e marcador de exclusão; ações limitadas às capacidades retornadas pelo servidor.
+- [x] Atualizar consultas após operações e pelo botão de atualização existente; sem prometer tempo real.
+- [x] Renderizar Markdown com `react-markdown`, sem HTML embutido, imagens externas, MDX ou execução de código. Suportar títulos, listas, citações, links e blocos de código; manter a proteção de URLs da biblioteca. [Referência oficial](https://github.com/remarkjs/react-markdown).
+- [x] Testar Markdown malicioso na prévia, conversa e versões; teclado, foco, temas, tela pequena, estados de erro e `cursor-pointer` nos controles.
+- [x] **Pronta quando:** E2E dos cenários passarem e a conferência visual/manual não encontrar impedimentos de uso.
 
 ### 4.6 — Validar a etapa completa e documentar
 
@@ -283,3 +283,54 @@ Mensagem sugerida, sem execução: `feat: add versioned message edits revisions 
 ### Registro do commit local da 4.4 — 17/11/2026
 
 Após a entrega, o usuário autorizou o commit local da 4.4, preservando alterações preexistentes e vedando push e PR. Os 12 arquivos da tarefa compõem uma unidade de contratos, serviços, rotas, testes, runner e documentação. Antes do commit, os nove arquivos de código/testes/runner foram comparados por SHA-256 com a cópia validada no container, sem divergências; não houve nova mudança de comportamento nem reexecução das suítes. Apenas este planejamento recebeu o registro da autorização. Artefatos de build estão ignorados e não integram o commit. Os três documentos preexistentes da etapa 3/plano geral ficam fora do índice, com integridade conferida por SHA-256. Mensagem autorizada: `feat: add versioned message edits revisions and soft deletion`. O hash deve ser consultado no histórico Git, sem autorreferência neste documento.
+
+### Execução da 4.5 — 17/11/2026
+
+Pedido direto para iniciar a 4.5, continuando a entrega única da etapa 4 na branch `codex/etapa-4-conversas`, sobre `4212b3c`. As três alterações preexistentes da etapa 3/plano geral foram preservadas. Sem migration, alteração de API/regra de servidor ou banco da aplicação; única dependência direta nova: `react-markdown@10.1.0`, prevista no plano, com lock atualizado. Skills aplicadas: `implement-issue`, `modern-web-guidance` (guias `security` e `forms`), checklist `react-best-practices` e revisão independente `review-delivery`.
+
+Fluxo: texto/visibilidade/arquivos → editor com rascunho em memória → APIs autorizadas existentes, com identificador de criação ou versão de edição → mensagem e anexos publicados juntos → invalidação das consultas de conversa, anexos e histórico. Conversa e histórico operacional ficam separados. Ações usam capacidades do servidor; prévia/mensagens/revisões compartilham a renderização Markdown sem HTML/imagens/MDX/execução de código. [Comportamento e limites](architecture.md#interface-da-conversa--tarefa-45), [reprodução](operations.md#interface-de-conversa--tarefa-45).
+
+Evidências executadas:
+
+| Verificação | Resultado |
+| --- | --- |
+| `node scripts/test-ticket-interface.mjs --messages --grep "envia Markdown"`, antes da interface | RED: desktop e celular falharam em `Conversa do chamado` ausente; base sintética/servidor/autenticação funcionaram |
+| Primeira execução de `--messages` | 18/20 passaram; resposta perdida na edição revelou lista desatualizada ao cancelar, corrigida com invalidação da conversa |
+| Segunda execução de `--messages` | 20/20 passaram, desktop e celular Chromium, um worker, sem retries; inclui S3 real privado local |
+| Regressão `--messages --grep "perda parcial"`, antes da correção da revisão | RED: desktop e celular atingiram timeout procurando “Encerrar edição” ausente após perder vínculo mantendo acesso ao chamado |
+| Execução de `--messages`, após corrigir os dois achados médios | GREEN: 22/22 passaram, desktop/celular, sem retries; inclui perda parcial de vínculo, rascunho interno e desativação durante edição |
+| Regressão de foco após cancelar, antes da correção baixa | RED: desktop/celular falharam na asserção de foco em “Editar” após cancelar a edição |
+| Primeira tentativa de foco adiado por frame | Cancelamento passou; 20/22 revelaram a corrida equivalente no foco de nova mensagem após envio. Asserções mantidas |
+| Execução final de `--messages`, após sincronizar foco com a atualização dos elementos | GREEN: 22/22 passaram, incluindo foco após envio/cancelamento; desktop e celular, um worker, zero retries |
+| `docker exec cifradesk-etapa34-tools pnpm check` | Lint sem avisos, tipos aprovados, 101 testes aprovados; 84 integrações puladas sem habilitador, não tratadas como aprovação |
+| `docker exec cifradesk-etapa34-tools pnpm build` | Web e worker compilados |
+| `node scripts/test-ticket-messages.mjs` | 34/34 integrações aprovadas, selecionadas explicitamente em banco sintético |
+| `node scripts/test-ticket-interface.mjs` | 16/16 regressões da interface de chamados aprovadas, desktop e celular, sem retries |
+| Integridade/diff | Nove arquivos de código/testes/runner/package/lock idênticos por SHA-256 ao container; `git diff --check` sem erros |
+
+Os roteiros cobrem envio/recarga, Markdown malicioso nos três contextos, isolamento de nota/arquivo e negação a administrador sem vínculo, upload/download real e só arquivos, edição com adição/remoção, versões, marcador de exclusão e bloqueio de revisões/download, conflito entre sessões, perda de resposta sem duplicação/reaplicação, falha de validação/consulta preservando rascunho, capacidades de autoria, paginação, FECHADO, setor inativo, teclado/foco, temas e ausência de rolagem horizontal. O corte de resposta usa injeção do Playwright, sem interrupção real de rede.
+
+Revisão independente inicial, somente leitura em contexto limpo: dois achados médios na perda parcial de capacidade, mantendo acesso como solicitante. A edição oculta deixava `editing` bloqueando ações/paginação; o compositor interno escondia o seletor ao perder vínculo, sem saída para mudar explicitamente de visibilidade. Ambos corrigidos: saída externa para encerrar edição indisponível, seletor preservado para rascunho interno com opção interna/envio bloqueados e escolha explícita de compartilhamento. Novo E2E reproduziu a ausência da saída antes da correção e passou depois em desktop/celular. A reavaliação apontou foco após cancelar como observação baixa, também reproduzida e corrigida. A restauração de foco no envio/cancelamento agora ocorre em efeitos após atualizar os elementos, sem corrida com controles desabilitados. Reavaliação independente final: **APROVADO PARA ENTREGA**, sem achados concretos restantes; revisão estática, sem executar suítes. O executor repetiu check/build e os 22 E2E no estado final; as 34 integrações e 16 regressões de chamados antecederam essas correções pontuais de interface, sem alteração de backend.
+
+Inspeção visual pelo executor das capturas do editor/conversa em desktop/celular e claro/escuro, incluindo captura da área visível para distinguir artefatos do recorte longo, sem impedimento visual identificado nessas imagens. Teclado/foco foram verificados pelos testes. Não houve teste com leitor de tela humano, usuários, Firefox/Safari ou ensaio de carga. A validação integral da etapa, incluindo todas as suítes de identidade/persistência e auditoria do histórico completo, permanece na 4.6. Rascunho não sobrevive a recarga/navegação; bytes removidos continuam na quota; limites de multipart em memória, lock global, limpeza operacional e escrita S3 tardia são herdados.
+
+Documentos atualizados: este planejamento, `architecture.md` e `operations.md`. Sem commit, push, PR, Linear, merge ou deploy. O PR único da etapa 4 depende da 4.6 e de autorização própria.
+
+#### Comentário curto pronto para o Linear — não publicado
+
+**O QUE E POR QUE**
+
+Conversa paginada no detalhe, com Markdown seguro, anexos, notas internas, edição, versões e exclusão. Reaproveita as APIs e os componentes shadcn existentes; identificador de criação e versão esperada evitam duplicação/sobrescrita silenciosa.
+
+**ALERTA DO SÊNIOR**
+
+Sem achados concretos pendentes após corrigir perda parcial de capacidade e foco. Rascunho vive apenas em memória e arquivos removidos continuam na quota. Sem validação em Firefox/Safari, leitor de tela humano ou carga.
+
+**FOCO DE REVISÃO**
+
+- `apps/web/src/components/tickets/message-editor.tsx`: rascunho, reenvio, versão esperada e visibilidade após perda de vínculo.
+- `apps/web/src/components/tickets/conversation.tsx`: capacidades, paginação, edição indisponível e exclusão.
+
+Pedágio didático: repetir o mesmo identificador torna a criação idempotente (não duplica o envio); versão esperada detecta alterações entre sessões; capacidade orienta a tela, mas a autorização continua no servidor. Caça aos erros silenciosos: perder vínculo durante edição pode bloquear a tela mesmo sem vazar dados; o novo E2E remove o vínculo mantendo o solicitante, verifica ocultação da nota, saída da edição, navegação e compartilhamento somente por escolha explícita.
+
+Mensagem sugerida, sem execução: `feat: add ticket conversation interface with safe markdown`.
